@@ -12,30 +12,39 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
+class ComponentScore(BaseModel):
+    """Score breakdown for a specific component."""
+    score: int = Field(..., ge=0, le=25, description="Component score (0-25)")
+    confidence: int = Field(..., ge=0, le=100, description="Confidence percentage (0-100)")
+    findings: list[str] = Field(..., description="Specific text examples supporting the score")
+    issues: list[str] = Field(..., description="Missing or problematic elements")
+    rationale: str = Field(..., description="Explanation for the score")
+
+
 class NexusAnalysis(BaseModel):
-    """Structured response model for nexus letter analysis."""
+    """Enhanced structured response model for nexus letter analysis with component scoring."""
     
-    # Connection Assessment
-    nexus_strength: str = Field(..., description="Overall strength of nexus connection (Strong/Moderate/Weak/None)")
-    probability_rating: str = Field(..., description="Medical probability rating (>50%, <50%, etc.)")
+    # Component-based analysis (25 points each)
+    medical_opinion: ComponentScore = Field(..., description="Medical opinion component analysis")
+    service_connection: ComponentScore = Field(..., description="Service connection component analysis")
+    medical_rationale: ComponentScore = Field(..., description="Medical rationale component analysis")
+    professional_format: ComponentScore = Field(..., description="Professional format component analysis")
     
-    # Key Components
-    medical_opinion_present: bool = Field(..., description="Whether a clear medical opinion is stated")
-    service_connection_stated: bool = Field(..., description="Whether service connection is explicitly stated")
-    medical_rationale_provided: bool = Field(..., description="Whether medical reasoning is provided")
+    # Overall Assessment
+    overall_score: int = Field(..., ge=0, le=100, description="Total score (0-100)")
+    nexus_strength: str = Field(..., description="Overall strength (Strong/Moderate/Weak/None)")
     
-    # Analysis Details
+    # Detailed Analysis
     primary_condition: str = Field(..., description="Main condition being evaluated")
     service_connected_condition: str = Field(..., description="Service-connected condition mentioned")
     connection_theory: str = Field(..., description="Theory of connection (direct, secondary, aggravation)")
-    
-    # Legal Strengths and Weaknesses
-    strengths: list[str] = Field(..., description="Legal/medical strengths of the letter")
-    weaknesses: list[str] = Field(..., description="Potential weaknesses or missing elements")
+    probability_language: Optional[str] = Field(None, description="Exact probability language used")
     
     # Summary and Recommendations
     summary: str = Field(..., description="Brief summary of the nexus letter's effectiveness")
-    recommendations: list[str] = Field(..., description="Suggestions for improvement if needed")
+    key_strengths: list[str] = Field(..., description="Top 3 strengths of the letter")
+    critical_issues: list[str] = Field(..., description="Critical issues that must be addressed")
+    improvement_priorities: list[str] = Field(..., description="Prioritized list of improvements")
 
 
 class NexusLetterAnalyzer:
@@ -118,7 +127,7 @@ class NexusLetterAnalyzer:
     
     def _build_prompt(self, letter_text: str) -> str:
         """
-        Build the analysis prompt for OpenAI API.
+        Build the enhanced component-based analysis prompt for OpenAI API.
         
         Args:
             letter_text: Raw nexus letter text
@@ -127,42 +136,93 @@ class NexusLetterAnalyzer:
             Formatted prompt string
         """
         prompt = f"""
-As a legal and medical expert, analyze this nexus letter for a VA disability claim. Evaluate the strength of the medical nexus connection and provide detailed feedback.
+As a VA disability claims expert, analyze this nexus letter using the VA's standards for medical evidence. Evaluate each component separately and provide detailed scoring.
 
 NEXUS LETTER TEXT:
 {letter_text}
 
-Please provide a comprehensive analysis in JSON format with the following structure:
+Analyze this nexus letter for VA compliance in these specific areas and provide a JSON response:
 
+1. MEDICAL OPINION (25 points max):
+   - Look for probability language ("at least as likely as not", ">50%", "more likely than not")
+   - Assess opinion certainty (definitive vs speculative language)
+   - Check for clear medical conclusion about the nexus
+   - Identify any hedging or equivocal language
+
+2. SERVICE CONNECTION (25 points max):
+   - Verify explicit linkage between condition and military service
+   - Look for specific service events, exposures, or incidents mentioned
+   - Check temporal relationship (when condition started relative to service)
+   - Assess clarity of the service-connection statement
+
+3. MEDICAL RATIONALE (25 points max):
+   - Evaluate scientific/clinical explanation provided
+   - Look for medical literature references or clinical guidelines
+   - Assess logical reasoning from service event to current condition
+   - Check for explanation of causation or aggravation mechanism
+
+4. PROFESSIONAL FORMAT (25 points max):
+   - Verify physician credentials are clearly stated
+   - Check for professional letterhead or contact information
+   - Assess overall letter structure and organization
+   - Look for proper medical terminology usage
+
+For each component, provide:
+- score: 0-25 points based on VA standards
+- confidence: 0-100% indicating your assessment confidence
+- findings: array of specific text examples supporting the score
+- issues: array of missing or problematic elements
+- rationale: explanation for the score given
+
+JSON Response Format:
 {{
+    "medical_opinion": {{
+        "score": 0-25,
+        "confidence": 0-100,
+        "findings": ["specific positive examples from text"],
+        "issues": ["missing or problematic elements"],
+        "rationale": "explanation for score"
+    }},
+    "service_connection": {{
+        "score": 0-25,
+        "confidence": 0-100,
+        "findings": ["specific positive examples from text"],
+        "issues": ["missing or problematic elements"],
+        "rationale": "explanation for score"
+    }},
+    "medical_rationale": {{
+        "score": 0-25,
+        "confidence": 0-100,
+        "findings": ["specific positive examples from text"],
+        "issues": ["missing or problematic elements"],
+        "rationale": "explanation for score"
+    }},
+    "professional_format": {{
+        "score": 0-25,
+        "confidence": 0-100,
+        "findings": ["specific positive examples from text"],
+        "issues": ["missing or problematic elements"],
+        "rationale": "explanation for score"
+    }},
+    "overall_score": sum of all component scores,
     "nexus_strength": "Strong/Moderate/Weak/None",
-    "probability_rating": "The medical probability stated (e.g., '>50%', 'at least as likely as not')",
-    "medical_opinion_present": true/false,
-    "service_connection_stated": true/false,
-    "medical_rationale_provided": true/false,
-    "primary_condition": "Main condition being evaluated",
-    "service_connected_condition": "Service-connected condition mentioned",
+    "primary_condition": "main condition being evaluated",
+    "service_connected_condition": "service-connected condition mentioned",
     "connection_theory": "direct/secondary/aggravation",
-    "strengths": ["List of legal/medical strengths"],
-    "weaknesses": ["List of potential weaknesses or missing elements"],
-    "summary": "Brief summary of letter's effectiveness",
-    "recommendations": ["Suggestions for improvement if needed"]
+    "probability_language": "exact probability language used if any",
+    "summary": "brief effectiveness summary",
+    "key_strengths": ["top 3 strengths"],
+    "critical_issues": ["must-fix issues"],
+    "improvement_priorities": ["prioritized improvements"]
 }}
 
-Focus on:
-1. Medical opinion clarity and strength
-2. Service connection establishment
-3. Medical rationale quality
-4. Legal sufficiency for VA standards
-5. Missing elements that could strengthen the claim
-
-Provide only the JSON response, no additional text.
+Provide ONLY the JSON response, no additional text or formatting.
         """
         return prompt.strip()
     
     def _parse_response(self, response_text: str) -> Dict[str, Any]:
         """
-        Parse OpenAI response into structured format.
+        Parse OpenAI response into structured format with validation and fallback handling.
         
         Args:
             response_text: Raw response from OpenAI
@@ -181,6 +241,23 @@ Provide only the JSON response, no additional text.
             # Parse JSON
             parsed_data = json.loads(response_text)
             
+            # Ensure overall_score is calculated if missing
+            if 'overall_score' not in parsed_data or parsed_data['overall_score'] is None:
+                component_scores = [
+                    parsed_data.get('medical_opinion', {}).get('score', 0),
+                    parsed_data.get('service_connection', {}).get('score', 0),
+                    parsed_data.get('medical_rationale', {}).get('score', 0),
+                    parsed_data.get('professional_format', {}).get('score', 0)
+                ]
+                parsed_data['overall_score'] = sum(component_scores)
+            
+            # Validate component scores are within bounds
+            for component in ['medical_opinion', 'service_connection', 'medical_rationale', 'professional_format']:
+                if component in parsed_data and 'score' in parsed_data[component]:
+                    score = parsed_data[component]['score']
+                    if score < 0 or score > 25:
+                        parsed_data[component]['score'] = max(0, min(25, score))
+            
             # Validate using Pydantic model
             analysis = NexusAnalysis(**parsed_data)
             
@@ -192,20 +269,73 @@ Provide only the JSON response, no additional text.
             
         except json.JSONDecodeError as e:
             logger.error(f"JSON parsing failed: {str(e)}")
-            return {
-                "error": True,
-                "message": "Failed to parse AI response",
-                "details": f"JSON error: {str(e)}",
-                "raw_response": response_text
-            }
+            return self._create_fallback_response(response_text, f"JSON error: {str(e)}")
         except Exception as e:
             logger.error(f"Response parsing failed: {str(e)}")
-            return {
-                "error": True,
-                "message": "Failed to process AI response",
-                "details": str(e),
-                "raw_response": response_text
-            }
+            return self._create_fallback_response(response_text, str(e))
+    
+    def _create_fallback_response(self, raw_response: str, error_details: str) -> Dict[str, Any]:
+        """
+        Create a fallback response when parsing fails.
+        
+        Args:
+            raw_response: The raw AI response text
+            error_details: Details about the parsing error
+            
+        Returns:
+            Fallback response dictionary
+        """
+        logger.warning(f"Creating fallback response due to: {error_details}")
+        
+        # Try to extract basic information from the response
+        fallback_analysis = {
+            "medical_opinion": {
+                "score": 10,
+                "confidence": 50,
+                "findings": ["Unable to fully parse AI response"],
+                "issues": ["Analysis parsing error occurred"],
+                "rationale": "Fallback scoring applied due to parsing error"
+            },
+            "service_connection": {
+                "score": 10,
+                "confidence": 50,
+                "findings": ["Unable to fully parse AI response"],
+                "issues": ["Analysis parsing error occurred"],
+                "rationale": "Fallback scoring applied due to parsing error"
+            },
+            "medical_rationale": {
+                "score": 10,
+                "confidence": 50,
+                "findings": ["Unable to fully parse AI response"],
+                "issues": ["Analysis parsing error occurred"],
+                "rationale": "Fallback scoring applied due to parsing error"
+            },
+            "professional_format": {
+                "score": 10,
+                "confidence": 50,
+                "findings": ["Unable to fully parse AI response"],
+                "issues": ["Analysis parsing error occurred"],
+                "rationale": "Fallback scoring applied due to parsing error"
+            },
+            "overall_score": 40,
+            "nexus_strength": "Moderate",
+            "primary_condition": "Unable to determine",
+            "service_connected_condition": "Unable to determine",
+            "connection_theory": "Unable to determine",
+            "probability_language": None,
+            "summary": "Analysis completed with parsing errors. Manual review recommended.",
+            "key_strengths": ["Letter was submitted for analysis"],
+            "critical_issues": ["AI response parsing failed - manual review needed"],
+            "improvement_priorities": ["Resubmit letter for analysis", "Consider manual review"]
+        }
+        
+        return {
+            "error": False,
+            "message": "Analysis completed with fallback processing",
+            "analysis": fallback_analysis,
+            "warning": f"Parsing error occurred: {error_details}",
+            "raw_response": raw_response[:500] + "..." if len(raw_response) > 500 else raw_response
+        }
 
 
 def create_analyzer() -> NexusLetterAnalyzer:

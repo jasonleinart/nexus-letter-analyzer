@@ -6,6 +6,10 @@ from typing import Dict, Any
 from ai_analyzer import create_analyzer, NexusLetterAnalyzer
 from text_processor import create_processor, TextProcessor
 from config import get_settings, validate_openai_key
+from scoring_engine import create_scorer, VAComplianceScorer
+from recommendation_engine import create_recommendation_engine, RecommendationEngine
+from database import create_database, AnalysisDatabase
+from analytics import display_analytics_dashboard
 
 
 def configure_page():
@@ -173,110 +177,166 @@ def display_loading_analysis():
     status_text.empty()
 
 
-def display_analysis_results(results: Dict[str, Any]):
+def display_analysis_results(ai_results: Dict[str, Any], scoring_results: Dict[str, Any], 
+                           recommendations: Dict[str, Any], processing_time: float):
     """
-    Display the analysis results in a professional format.
+    Display the enhanced analysis results with scoring and recommendations.
     
     Args:
-        results: Analysis results from AI analyzer
+        ai_results: Analysis results from AI analyzer
+        scoring_results: Results from scoring engine
+        recommendations: Results from recommendation engine
+        processing_time: Time taken to process
     """
-    if results.get('error'):
-        st.error(f"**Analysis Error:** {results.get('message', 'Unknown error')}")
-        if results.get('details'):
-            st.code(results['details'])
+    if ai_results.get('error'):
+        st.error(f"**Analysis Error:** {ai_results.get('message', 'Unknown error')}")
+        if ai_results.get('details'):
+            st.code(ai_results['details'])
         return
     
-    analysis = results.get('analysis', {})
+    analysis = ai_results.get('analysis', {})
+    overall_score = scoring_results.get('overall_score', 0)
+    workflow_rec = recommendations.get('workflow_recommendation')
     
-    # Main analysis summary
-    st.subheader("📊 Analysis Summary")
+    # Overall score header with color coding
+    if overall_score >= 85:
+        st.success(f"{workflow_rec.icon if workflow_rec else '🟢'} **Overall Score: {overall_score}/100**")
+        if workflow_rec:
+            st.success(workflow_rec.message)
+    elif overall_score >= 70:
+        st.warning(f"{workflow_rec.icon if workflow_rec else '🟡'} **Overall Score: {overall_score}/100**")
+        if workflow_rec:
+            st.warning(workflow_rec.message)
+    else:
+        st.error(f"{workflow_rec.icon if workflow_rec else '🔴'} **Overall Score: {overall_score}/100**")
+        if workflow_rec:
+            st.error(workflow_rec.message)
     
-    # Key metrics in columns
-    col1, col2, col3, col4 = st.columns(4)
+    # Component scores with progress visualization
+    st.subheader("📊 Component Analysis")
     
-    with col1:
-        strength = analysis.get('nexus_strength', 'Unknown')
-        color = {
-            'Strong': 'green',
-            'Moderate': 'orange', 
-            'Weak': 'red',
-            'None': 'red'
-        }.get(strength, 'gray')
-        st.markdown(f"**Nexus Strength**")
-        st.markdown(f"<span style='color: {color}; font-size: 1.2em; font-weight: bold'>{strength}</span>", 
-                   unsafe_allow_html=True)
+    components = [
+        ('Medical Opinion', scoring_results.get('medical_opinion_breakdown')),
+        ('Service Connection', scoring_results.get('service_connection_breakdown')),
+        ('Medical Rationale', scoring_results.get('medical_rationale_breakdown')),
+        ('Professional Format', scoring_results.get('professional_format_breakdown'))
+    ]
     
-    with col2:
-        probability = analysis.get('probability_rating', 'Not stated')
-        st.markdown(f"**Probability Rating**")
-        st.markdown(f"**{probability}**")
+    # Display component scores in two columns
+    col1, col2 = st.columns(2)
     
-    with col3:
-        medical_opinion = analysis.get('medical_opinion_present', False)
-        icon = "✅" if medical_opinion else "❌"
-        st.markdown(f"**Medical Opinion**")
-        st.markdown(f"{icon} {'Present' if medical_opinion else 'Missing'}")
-    
-    with col4:
-        service_connection = analysis.get('service_connection_stated', False)
-        icon = "✅" if service_connection else "❌"
-        st.markdown(f"**Service Connection**")
-        st.markdown(f"{icon} {'Stated' if service_connection else 'Missing'}")
+    for i, (name, breakdown) in enumerate(components):
+        col = col1 if i % 2 == 0 else col2
+        with col:
+            if breakdown and hasattr(breakdown, 'score'):
+                score = breakdown.score
+                max_score = breakdown.max_score
+                progress = score / max_score if max_score > 0 else 0
+                
+                # Color based on percentage
+                if progress >= 0.8:
+                    color = "green"
+                elif progress >= 0.6:
+                    color = "orange"
+                else:
+                    color = "red"
+                
+                st.markdown(f"**{name}**")
+                st.progress(progress)
+                st.markdown(f"<span style='color: {color}; font-weight: bold'>{score}/{max_score} points</span>", 
+                           unsafe_allow_html=True)
+                
+                # Show breakdown in expander
+                with st.expander(f"View {name} Details"):
+                    if hasattr(breakdown, 'criteria') and breakdown.criteria:
+                        for criterion, points in breakdown.criteria.items():
+                            st.markdown(f"• **{criterion.replace('_', ' ').title()}:** {points} points")
+                    if hasattr(breakdown, 'rationale'):
+                        st.markdown(f"*{breakdown.rationale}*")
+            else:
+                st.markdown(f"**{name}**")
+                st.progress(0)
+                st.markdown("0/25 points")
     
     st.divider()
     
-    # Detailed analysis sections
+    # Key findings and recommendations
     col1, col2 = st.columns(2)
     
     with col1:
-        st.subheader("🔍 Letter Components")
+        st.subheader("🔍 Key Findings")
+        
+        # Display key strengths
+        if 'key_strengths' in analysis and analysis['key_strengths']:
+            st.markdown("**Strengths:**")
+            for strength in analysis['key_strengths'][:3]:
+                st.markdown(f"✅ {strength}")
+        
+        # Display critical issues
+        if 'critical_issues' in analysis and analysis['critical_issues']:
+            st.markdown("**Critical Issues:**")
+            for issue in analysis['critical_issues']:
+                st.markdown(f"⚠️ {issue}")
         
         # Primary conditions
         if analysis.get('primary_condition'):
             st.markdown(f"**Primary Condition:** {analysis['primary_condition']}")
-        
-        if analysis.get('service_connected_condition'):
-            st.markdown(f"**Service-Connected Condition:** {analysis['service_connected_condition']}")
-        
-        if analysis.get('connection_theory'):
-            st.markdown(f"**Connection Theory:** {analysis['connection_theory'].title()}")
-        
-        # Medical rationale indicator
-        rationale = analysis.get('medical_rationale_provided', False)
-        st.markdown(f"**Medical Rationale:** {'✅ Provided' if rationale else '❌ Missing'}")
-        
-        # Strengths
-        st.subheader("💪 Strengths")
-        strengths = analysis.get('strengths', [])
-        if strengths:
-            for strength in strengths:
-                st.markdown(f"• {strength}")
-        else:
-            st.markdown("*No specific strengths identified*")
+        if analysis.get('probability_language'):
+            st.markdown(f"**Probability Language:** \"{analysis['probability_language']}\"")
     
     with col2:
-        # Weaknesses
-        st.subheader("⚠️ Areas for Improvement")
-        weaknesses = analysis.get('weaknesses', [])
-        if weaknesses:
-            for weakness in weaknesses:
-                st.markdown(f"• {weakness}")
-        else:
-            st.markdown("*No major weaknesses identified*")
+        st.subheader("📋 Priority Improvements")
         
-        # Recommendations
-        st.subheader("📋 Recommendations")
-        recommendations = analysis.get('recommendations', [])
-        if recommendations:
-            for rec in recommendations:
-                st.markdown(f"• {rec}")
-        else:
-            st.markdown("*No specific recommendations*")
+        improvements = recommendations.get('improvement_suggestions', [])
+        critical_count = recommendations.get('critical_issues', 0)
+        
+        if critical_count > 0:
+            st.error(f"**{critical_count} Critical Issues** require immediate attention")
+        
+        # Show top 5 improvements
+        for i, improvement in enumerate(improvements[:5]):
+            if hasattr(improvement, 'impact'):
+                impact_icon = {
+                    'critical': '🔴',
+                    'high': '🟡',
+                    'medium': '🟢',
+                    'low': '🔵'
+                }.get(improvement.impact, '⚪')
+                
+                st.markdown(f"{impact_icon} **{improvement.component.replace('_', ' ').title()}**")
+                st.markdown(f"   {improvement.suggestion}")
+                if hasattr(improvement, 'example') and improvement.example:
+                    st.info(f"Example: {improvement.example}")
     
-    # Summary section
-    st.subheader("📝 Overall Assessment")
-    summary = analysis.get('summary', 'No summary available')
-    st.markdown(summary)
+    # Workflow next steps
+    if workflow_rec and hasattr(workflow_rec, 'next_steps'):
+        st.subheader("🚀 Next Steps")
+        for i, step in enumerate(workflow_rec.next_steps, 1):
+            st.markdown(f"{i}. {step}")
+    
+    # Client summary
+    client_summary = recommendations.get('client_summary')
+    if client_summary:
+        st.subheader("📝 Client Summary")
+        st.markdown(client_summary)
+    
+    # Attorney notes (if applicable)
+    attorney_notes = recommendations.get('attorney_notes')
+    if attorney_notes:
+        with st.expander("⚖️ Attorney Review Notes"):
+            st.markdown(attorney_notes)
+    
+    # Performance metrics
+    st.divider()
+    metrics_col1, metrics_col2, metrics_col3 = st.columns(3)
+    
+    with metrics_col1:
+        st.metric("Processing Time", f"{processing_time:.1f}s")
+    with metrics_col2:
+        st.metric("Nexus Strength", analysis.get('nexus_strength', 'Unknown'))
+    with metrics_col3:
+        total_improvements = recommendations.get('total_improvements', 0)
+        st.metric("Total Improvements", total_improvements)
     
     # Export options
     st.subheader("💾 Export Results")
@@ -284,68 +344,129 @@ def display_analysis_results(results: Dict[str, Any]):
     col1, col2 = st.columns([1, 3])
     
     with col1:
-        if st.button("📋 Copy to Clipboard", help="Copy analysis results to clipboard"):
+        if st.button("📋 Copy Full Report", help="Copy complete analysis report"):
             # Create formatted text for copying
-            export_text = format_results_for_export(analysis)
+            export_text = format_enhanced_results_for_export(
+                analysis, scoring_results, recommendations, processing_time
+            )
             st.code(export_text, language=None)
     
     with col2:
-        st.markdown("*Analysis results formatted for professional use*")
+        st.markdown("*Complete analysis report with scoring and recommendations*")
 
 
-def format_results_for_export(analysis: Dict[str, Any]) -> str:
+def format_enhanced_results_for_export(analysis: Dict[str, Any], scoring_results: Dict[str, Any],
+                                      recommendations: Dict[str, Any], processing_time: float) -> str:
     """
-    Format analysis results for export/copying.
+    Format enhanced analysis results for export/copying.
     
     Args:
-        analysis: Analysis results dictionary
+        analysis: AI analysis results
+        scoring_results: Scoring engine results  
+        recommendations: Recommendation engine results
+        processing_time: Processing time in seconds
         
     Returns:
         Formatted text string
     """
     lines = [
         "NEXUS LETTER ANALYSIS REPORT",
-        "=" * 40,
+        "=" * 60,
         "",
-        f"Nexus Strength: {analysis.get('nexus_strength', 'Unknown')}",
-        f"Probability Rating: {analysis.get('probability_rating', 'Not stated')}",
-        f"Medical Opinion Present: {'Yes' if analysis.get('medical_opinion_present') else 'No'}",
-        f"Service Connection Stated: {'Yes' if analysis.get('service_connection_stated') else 'No'}",
+        f"Overall Score: {scoring_results.get('overall_score', 0)}/100",
+        f"Processing Time: {processing_time:.1f} seconds",
         "",
-        "COMPONENTS:",
-        f"Primary Condition: {analysis.get('primary_condition', 'Not specified')}",
-        f"Service-Connected Condition: {analysis.get('service_connected_condition', 'Not specified')}",
-        f"Connection Theory: {analysis.get('connection_theory', 'Not specified')}",
-        "",
-        "STRENGTHS:",
+        "COMPONENT SCORES:",
+        "-" * 40,
     ]
     
-    for strength in analysis.get('strengths', []):
-        lines.append(f"• {strength}")
+    # Add component scores
+    components = [
+        ('Medical Opinion', scoring_results.get('medical_opinion_breakdown')),
+        ('Service Connection', scoring_results.get('service_connection_breakdown')),
+        ('Medical Rationale', scoring_results.get('medical_rationale_breakdown')),
+        ('Professional Format', scoring_results.get('professional_format_breakdown'))
+    ]
+    
+    for name, breakdown in components:
+        if breakdown and hasattr(breakdown, 'score'):
+            lines.append(f"{name}: {breakdown.score}/{breakdown.max_score} points")
+            if hasattr(breakdown, 'rationale'):
+                lines.append(f"  - {breakdown.rationale}")
     
     lines.extend([
         "",
-        "AREAS FOR IMPROVEMENT:",
+        "WORKFLOW RECOMMENDATION:",
+        "-" * 40,
     ])
     
-    for weakness in analysis.get('weaknesses', []):
-        lines.append(f"• {weakness}")
+    workflow_rec = recommendations.get('workflow_recommendation')
+    if workflow_rec:
+        lines.append(f"Decision: {workflow_rec.decision.replace('_', ' ').upper()}")
+        lines.append(f"Message: {workflow_rec.message}")
+        lines.append("")
+        lines.append("Next Steps:")
+        for i, step in enumerate(workflow_rec.next_steps, 1):
+            lines.append(f"  {i}. {step}")
     
     lines.extend([
         "",
-        "RECOMMENDATIONS:",
+        "KEY FINDINGS:",
+        "-" * 40,
     ])
     
-    for rec in analysis.get('recommendations', []):
-        lines.append(f"• {rec}")
+    lines.append(f"Nexus Strength: {analysis.get('nexus_strength', 'Unknown')}")
+    lines.append(f"Primary Condition: {analysis.get('primary_condition', 'Not specified')}")
+    if analysis.get('probability_language'):
+        lines.append(f"Probability Language: \"{analysis['probability_language']}\"")
+    
+    if analysis.get('key_strengths'):
+        lines.extend([
+            "",
+            "Strengths:",
+        ])
+        for strength in analysis['key_strengths']:
+            lines.append(f"  • {strength}")
+    
+    if analysis.get('critical_issues'):
+        lines.extend([
+            "",
+            "Critical Issues:",
+        ])
+        for issue in analysis['critical_issues']:
+            lines.append(f"  • {issue}")
+    
+    improvements = recommendations.get('improvement_suggestions', [])
+    if improvements:
+        lines.extend([
+            "",
+            "PRIORITY IMPROVEMENTS:",
+            "-" * 40,
+        ])
+        
+        for i, imp in enumerate(improvements[:10], 1):
+            if hasattr(imp, 'component'):
+                lines.append(f"{i}. {imp.component.replace('_', ' ').title()} ({imp.impact})")
+                lines.append(f"   Issue: {imp.issue}")
+                lines.append(f"   Fix: {imp.suggestion}")
+                if hasattr(imp, 'example') and imp.example:
+                    lines.append(f"   Example: {imp.example}")
+                lines.append("")
+    
+    client_summary = recommendations.get('client_summary')
+    if client_summary:
+        lines.extend([
+            "",
+            "CLIENT SUMMARY:",
+            "-" * 40,
+            client_summary
+        ])
     
     lines.extend([
         "",
-        "SUMMARY:",
-        analysis.get('summary', 'No summary available'),
-        "",
-        f"Analysis generated by Nexus Letter AI Analyzer",
-        f"Powered by OpenAI GPT-4"
+        f"Analysis generated by Nexus Letter AI Analyzer v2.0",
+        f"Powered by OpenAI GPT-4 with VA Compliance Scoring",
+        f"© Disability Law Group - AI Systems & Technology Integration"
     ])
     
     return "\n".join(lines)
@@ -361,55 +482,105 @@ def main():
     if not check_api_key_setup():
         st.stop()
     
-    # Get user input
-    letter_text, processor = get_user_input()
+    # Create tabs for main interface and analytics
+    tab1, tab2 = st.tabs(["📝 Letter Analysis", "📈 Analytics Dashboard"])
     
-    # Analysis section
-    if st.button("🚀 Analyze Nexus Letter", type="primary", use_container_width=True):
-        if not letter_text:
-            st.warning("Please enter nexus letter text to analyze.")
-            return
+    with tab1:
+        # Get user input
+        letter_text, processor = get_user_input()
         
-        # Validate input
-        is_valid, validation_msg = processor.validate_input(letter_text)
-        if not is_valid:
-            st.error(f"**Input Validation Failed:** {validation_msg}")
-            return
-        
-        # Show loading animation
-        with st.spinner("Analyzing nexus letter..."):
-            display_loading_analysis()
+        # Analysis section
+        if st.button("🚀 Analyze Nexus Letter", type="primary", use_container_width=True):
+            if not letter_text:
+                st.warning("Please enter nexus letter text to analyze.")
+                return
             
-            # Create analyzer and perform analysis
-            try:
-                analyzer = create_analyzer()
+            # Validate input
+            is_valid, validation_msg = processor.validate_input(letter_text)
+            if not is_valid:
+                st.error(f"**Input Validation Failed:** {validation_msg}")
+                return
+            
+            # Show loading animation
+            with st.spinner("Analyzing nexus letter..."):
+                display_loading_analysis()
                 
-                # Test connection first
-                success, msg = analyzer.test_connection()
-                if not success:
-                    st.error(f"**API Connection Failed:** {msg}")
-                    return
-                
-                # Preprocess text
-                processed_text = processor.preprocess_for_ai(letter_text)
-                
-                # Perform analysis
-                results = analyzer.analyze_letter(processed_text)
-                
-                # Display results
-                st.success("Analysis completed successfully!")
-                display_analysis_results(results)
-                
-            except Exception as e:
-                st.error(f"**Analysis Error:** {str(e)}")
-                st.markdown("Please check your API key and try again.")
+                # Create components and perform analysis
+                try:
+                    # Track processing time
+                    start_time = time.time()
+                    
+                    # Initialize components
+                    analyzer = create_analyzer()
+                    scorer = create_scorer()
+                    rec_engine = create_recommendation_engine()
+                    database = create_database()
+                    
+                    # Test connection first
+                    success, msg = analyzer.test_connection()
+                    if not success:
+                        st.error(f"**API Connection Failed:** {msg}")
+                        return
+                    
+                    # Preprocess text
+                    processed_text = processor.preprocess_for_ai(letter_text)
+                    
+                    # Perform AI analysis
+                    ai_results = analyzer.analyze_letter(processed_text)
+                    
+                    if ai_results.get('error'):
+                        st.error("AI analysis failed. Please try again.")
+                        return
+                    
+                    # Calculate scores
+                    scoring_results = scorer.calculate_total_score(ai_results['analysis'])
+                    
+                    # Generate recommendations
+                    recommendations = rec_engine.generate_recommendations(
+                        scoring_results['overall_score'],
+                        scoring_results,
+                        ai_results['analysis']
+                    )
+                    
+                    # Calculate processing time
+                    processing_time = time.time() - start_time
+                    
+                    # Save to database
+                    try:
+                        analysis_id = database.save_analysis(
+                            letter_text,
+                            ai_results['analysis'],
+                            scoring_results,
+                            recommendations,
+                            processing_time
+                        )
+                        st.success(f"✅ Analysis completed successfully! (ID: {analysis_id})")
+                    except Exception as db_error:
+                        st.warning(f"Analysis complete but couldn't save to database: {str(db_error)}")
+                        st.success("✅ Analysis completed successfully!")
+                    
+                    # Display enhanced results
+                    display_analysis_results(ai_results, scoring_results, recommendations, processing_time)
+                    
+                except Exception as e:
+                    st.error(f"**Analysis Error:** {str(e)}")
+                    st.markdown("Please check your configuration and try again.")
     
-    # Footer
+    with tab2:
+        # Analytics Dashboard
+        try:
+            database = create_database()
+            display_analytics_dashboard(database)
+        except Exception as e:
+            st.error(f"Analytics dashboard error: {str(e)}")
+            st.markdown("Analytics dashboard is temporarily unavailable. The main analysis features are still functional.")
+    
+    # Footer (outside tabs)
     st.markdown("---")
     st.markdown("""
     <div style='text-align: center; color: gray; font-size: 0.8em;'>
-        Nexus Letter AI Analyzer v1.0 | Powered by OpenAI GPT-4<br>
-        Developed for Disability Law Group - AI Systems & Technology Integration
+        Nexus Letter AI Analyzer v2.0 | Enhanced with Professional Scoring<br>
+        Powered by OpenAI GPT-4 | Developed for Disability Law Group
     </div>
     """, unsafe_allow_html=True)
 
