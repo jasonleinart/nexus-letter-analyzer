@@ -13,27 +13,47 @@ from analytics import display_analytics_dashboard
 
 
 def configure_page():
-    """Configure Streamlit page settings."""
+    """Configure Streamlit page settings and load professional styling."""
     st.set_page_config(
         page_title="Nexus Letter AI Analyzer",
         page_icon="⚖️",
         layout="wide",
         initial_sidebar_state="collapsed"
     )
+    
+    # Load professional CSS styling
+    try:
+        with open('styles.css', 'r') as f:
+            st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
+    except FileNotFoundError:
+        # Fallback inline styles if CSS file not found
+        st.markdown("""
+        <style>
+        .main .block-container { padding-top: 2rem; max-width: 1200px; }
+        .main-header { 
+            background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+            color: white; padding: 2rem; margin: -1rem -1rem 2rem -1rem;
+            border-radius: 0 0 0.75rem 0.75rem; text-align: center;
+        }
+        .score-card { 
+            background: white; border-radius: 0.75rem; padding: 2rem; margin: 1.5rem 0;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); border-left: 6px solid #3b82f6;
+        }
+        </style>
+        """, unsafe_allow_html=True)
 
 
 def display_header():
-    """Display the application header and description."""
-    st.title("⚖️ Nexus Letter AI Analyzer")
+    """Display the professional application header."""
     st.markdown("""
-    **Professional AI-powered analysis of VA disability nexus letters**
-    
-    This tool uses OpenAI GPT-4 to analyze nexus letters for legal strength, medical opinion quality, 
-    and compliance with VA disability claim requirements.
-    """)
-    
-    # Add divider
-    st.divider()
+    <div class="main-header fade-in">
+        <h1>⚖️ Nexus Letter AI Analyzer</h1>
+        <div class="subtitle">Professional AI-powered analysis of VA disability nexus letters</div>
+        <p style="margin: 1rem 0 0 0; font-size: 0.95rem; opacity: 0.8;">
+            Advanced GPT-4 analysis for legal strength, medical opinion quality, and VA compliance
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
 
 
 def display_sidebar_info():
@@ -180,7 +200,7 @@ def display_loading_analysis():
 def display_analysis_results(ai_results: Dict[str, Any], scoring_results: Dict[str, Any], 
                            recommendations: Dict[str, Any], processing_time: float):
     """
-    Display the enhanced analysis results with scoring and recommendations.
+    Display the professional analysis results with enhanced visual presentation.
     
     Args:
         ai_results: Analysis results from AI analyzer
@@ -198,161 +218,326 @@ def display_analysis_results(ai_results: Dict[str, Any], scoring_results: Dict[s
     overall_score = scoring_results.get('overall_score', 0)
     workflow_rec = recommendations.get('workflow_recommendation')
     
-    # Overall score header with color coding
-    if overall_score >= 85:
-        st.success(f"{workflow_rec.icon if workflow_rec else '🟢'} **Overall Score: {overall_score}/100**")
-        if workflow_rec:
-            st.success(workflow_rec.message)
-    elif overall_score >= 70:
-        st.warning(f"{workflow_rec.icon if workflow_rec else '🟡'} **Overall Score: {overall_score}/100**")
-        if workflow_rec:
-            st.warning(workflow_rec.message)
-    else:
-        st.error(f"{workflow_rec.icon if workflow_rec else '🔴'} **Overall Score: {overall_score}/100**")
-        if workflow_rec:
-            st.error(workflow_rec.message)
+    # Professional overall score card
+    display_professional_score_card(overall_score, workflow_rec)
     
-    # Component scores with progress visualization
-    st.subheader("📊 Component Analysis")
+    # Component analysis with visual progress bars
+    display_component_analysis(scoring_results)
+    
+    # Key findings and recommendations in professional cards
+    display_findings_and_recommendations(analysis, recommendations)
+    
+    # Workflow guidance section
+    display_workflow_guidance(workflow_rec)
+    
+    # Performance metrics dashboard
+    display_performance_metrics(processing_time, analysis, recommendations)
+    
+    # Professional export section
+    display_export_options(analysis, scoring_results, recommendations, processing_time)
+
+
+def display_professional_score_card(overall_score: int, workflow_rec):
+    """Display the main score card with professional styling."""
+    
+    # Determine score category and styling
+    if overall_score >= 85:
+        status_class = "score-excellent"
+        status_text = "EXCELLENT"
+        status_icon = "🏆"
+        description = "Letter Exceeds VA Standards"
+    elif overall_score >= 70:
+        status_class = "score-good"
+        status_text = "GOOD"
+        status_icon = "📋"
+        description = "Attorney Review Recommended"
+    else:
+        status_class = "score-poor"
+        status_text = "NEEDS IMPROVEMENT"
+        status_icon = "⚠️"
+        description = "Revision Required"
+    
+    st.markdown(f"""
+    <div class="score-card {status_class} slide-up">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div style="flex: 1;">
+                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                    <span style="font-size: 1.5rem;">{status_icon}</span>
+                    <span style="font-size: 1.2rem; font-weight: bold; color: #1f2937;">{status_text}</span>
+                </div>
+                <h2 style="margin: 0; color: #1f2937; font-size: 1.8rem;">VA Compliance Score</h2>
+                <p style="margin: 0.25rem 0 0 0; color: #6b7280; font-size: 1rem;">{description}</p>
+            </div>
+            <div style="text-align: right; padding-left: 2rem;">
+                <div style="font-size: 4rem; font-weight: bold; color: #1e3a8a; line-height: 1;">{overall_score}</div>
+                <div style="color: #6b7280; font-size: 1.1rem; margin-top: -0.5rem;">out of 100</div>
+            </div>
+        </div>
+        {f'<div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #e5e7eb; color: #374151; font-weight: 500;">{workflow_rec.message}</div>' if workflow_rec else ''}
+    </div>
+    """, unsafe_allow_html=True)
+
+
+def display_component_analysis(scoring_results: Dict[str, Any]):
+    """Display component analysis with professional progress bars."""
+    
+    st.markdown("## 📊 Component Analysis")
+    st.markdown("*Detailed breakdown of nexus letter evaluation criteria*")
     
     components = [
-        ('Medical Opinion', scoring_results.get('medical_opinion_breakdown')),
-        ('Service Connection', scoring_results.get('service_connection_breakdown')),
-        ('Medical Rationale', scoring_results.get('medical_rationale_breakdown')),
-        ('Professional Format', scoring_results.get('professional_format_breakdown'))
+        ("Medical Opinion", scoring_results.get('medical_opinion_breakdown'), "🩺"),
+        ("Service Connection", scoring_results.get('service_connection_breakdown'), "🎖️"),
+        ("Medical Rationale", scoring_results.get('medical_rationale_breakdown'), "🧠"),
+        ("Professional Format", scoring_results.get('professional_format_breakdown'), "📝")
     ]
     
-    # Display component scores in two columns
+    # Create two-column layout for components
     col1, col2 = st.columns(2)
     
-    for i, (name, breakdown) in enumerate(components):
+    for i, (name, breakdown, icon) in enumerate(components):
         col = col1 if i % 2 == 0 else col2
+        
         with col:
             if breakdown and hasattr(breakdown, 'score'):
                 score = breakdown.score
                 max_score = breakdown.max_score
                 progress = score / max_score if max_score > 0 else 0
                 
-                # Color based on percentage
+                # Determine progress bar color
                 if progress >= 0.8:
-                    color = "green"
+                    progress_class = "progress-excellent"
                 elif progress >= 0.6:
-                    color = "orange"
+                    progress_class = "progress-good"
                 else:
-                    color = "red"
+                    progress_class = "progress-poor"
                 
-                st.markdown(f"**{name}**")
-                st.progress(progress)
-                st.markdown(f"<span style='color: {color}; font-weight: bold'>{score}/{max_score} points</span>", 
-                           unsafe_allow_html=True)
+                st.markdown(f"""
+                <div class="component-card fade-in">
+                    <div class="component-header">
+                        <div class="component-title">
+                            <span style="font-size: 1.2rem;">{icon}</span>
+                            {name}
+                        </div>
+                        <div class="component-score">{score}/{max_score}</div>
+                    </div>
+                    <div class="progress-container">
+                        <div class="progress-bar {progress_class}" style="width: {progress * 100}%;"></div>
+                    </div>
+                    <div style="font-size: 0.9rem; color: #6b7280; margin-top: 0.5rem;">
+                        {int(progress * 100)}% Complete
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
                 
-                # Show breakdown in expander
+                # Show detailed breakdown in expander
                 with st.expander(f"View {name} Details"):
                     if hasattr(breakdown, 'criteria') and breakdown.criteria:
+                        st.markdown("**Scoring Criteria:**")
                         for criterion, points in breakdown.criteria.items():
                             st.markdown(f"• **{criterion.replace('_', ' ').title()}:** {points} points")
                     if hasattr(breakdown, 'rationale'):
+                        st.markdown("**Analysis:**")
                         st.markdown(f"*{breakdown.rationale}*")
             else:
-                st.markdown(f"**{name}**")
-                st.progress(0)
-                st.markdown("0/25 points")
+                st.markdown(f"""
+                <div class="component-card fade-in">
+                    <div class="component-header">
+                        <div class="component-title">
+                            <span style="font-size: 1.2rem;">{icon}</span>
+                            {name}
+                        </div>
+                        <div class="component-score">0/25</div>
+                    </div>
+                    <div class="progress-container">
+                        <div class="progress-bar progress-poor" style="width: 0%;"></div>
+                    </div>
+                    <div style="font-size: 0.9rem; color: #6b7280; margin-top: 0.5rem;">
+                        0% Complete
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+
+
+def display_findings_and_recommendations(analysis: Dict[str, Any], recommendations: Dict[str, Any]):
+    """Display key findings and recommendations in professional cards."""
     
-    st.divider()
-    
-    # Key findings and recommendations
     col1, col2 = st.columns(2)
     
     with col1:
-        st.subheader("🔍 Key Findings")
+        st.markdown("## 🔍 Key Findings")
         
-        # Display key strengths
+        # Display key strengths using Streamlit native components
         if 'key_strengths' in analysis and analysis['key_strengths']:
-            st.markdown("**Strengths:**")
+            st.markdown("### ✅ Strengths")
             for strength in analysis['key_strengths'][:3]:
-                st.markdown(f"✅ {strength}")
+                st.success(f"✓ {strength}")
         
         # Display critical issues
         if 'critical_issues' in analysis and analysis['critical_issues']:
-            st.markdown("**Critical Issues:**")
+            st.markdown("### ⚠️ Critical Issues")
             for issue in analysis['critical_issues']:
-                st.markdown(f"⚠️ {issue}")
+                st.error(f"⚠ {issue}")
         
-        # Primary conditions
-        if analysis.get('primary_condition'):
-            st.markdown(f"**Primary Condition:** {analysis['primary_condition']}")
-        if analysis.get('probability_language'):
-            st.markdown(f"**Probability Language:** \"{analysis['probability_language']}\"")
+        # Key details
+        if analysis.get('primary_condition') or analysis.get('probability_language'):
+            st.markdown("### 📋 Key Details")
+            if analysis.get('primary_condition'):
+                st.info(f"**Primary Condition:** {analysis['primary_condition']}")
+            if analysis.get('probability_language'):
+                st.info(f"**Probability Language:** \"{analysis['probability_language']}\"")
     
     with col2:
-        st.subheader("📋 Priority Improvements")
+        st.markdown("## 📋 Priority Improvements")
         
         improvements = recommendations.get('improvement_suggestions', [])
         critical_count = recommendations.get('critical_issues', 0)
         
         if critical_count > 0:
-            st.error(f"**{critical_count} Critical Issues** require immediate attention")
+            st.error(f"🔴 **{critical_count} Critical Issues** require immediate attention")
         
-        # Show top 5 improvements
-        for i, improvement in enumerate(improvements[:5]):
-            if hasattr(improvement, 'impact'):
-                impact_icon = {
-                    'critical': '🔴',
-                    'high': '🟡',
-                    'medium': '🟢',
-                    'low': '🔵'
-                }.get(improvement.impact, '⚪')
+        # Show top 5 improvements using native Streamlit components
+        if improvements:
+            for i, improvement in enumerate(improvements[:5]):
+                # Handle both object and dictionary formats
+                if hasattr(improvement, 'impact'):
+                    # Object format
+                    impact = improvement.impact
+                    component = improvement.component
+                    suggestion = improvement.suggestion
+                    example = getattr(improvement, 'example', None)
+                else:
+                    # Dictionary format fallback
+                    impact = improvement.get('impact', 'medium')
+                    component = improvement.get('component', 'general')
+                    suggestion = improvement.get('suggestion', 'No suggestion available')
+                    example = improvement.get('example', None)
                 
-                st.markdown(f"{impact_icon} **{improvement.component.replace('_', ' ').title()}**")
-                st.markdown(f"   {improvement.suggestion}")
-                if hasattr(improvement, 'example') and improvement.example:
-                    st.info(f"Example: {improvement.example}")
+                # Format component name
+                component_name = str(component).replace('_', ' ').title()
+                
+                # Choose appropriate Streamlit component based on impact
+                if impact == 'critical':
+                    st.error(f"🔴 **{component_name}**")
+                    st.write(f"   {suggestion}")
+                elif impact == 'high':
+                    st.warning(f"🟡 **{component_name}**")
+                    st.write(f"   {suggestion}")
+                else:
+                    st.info(f"🟢 **{component_name}**")
+                    st.write(f"   {suggestion}")
+                
+                # Add example if available
+                if example:
+                    st.caption(f"Example: {example}")
+        else:
+            st.info("No specific improvements identified - letter meets basic standards.")
+
+
+def display_workflow_guidance(workflow_rec):
+    """Display workflow guidance and next steps."""
     
-    # Workflow next steps
     if workflow_rec and hasattr(workflow_rec, 'next_steps'):
-        st.subheader("🚀 Next Steps")
+        st.markdown("## 🚀 Recommended Next Steps")
+        
+        # Use native Streamlit components for better display
         for i, step in enumerate(workflow_rec.next_steps, 1):
-            st.markdown(f"{i}. {step}")
+            st.info(f"**Step {i}:** {step}")
+    elif workflow_rec and hasattr(workflow_rec, 'decision'):
+        # If we have workflow recommendation but no next steps, show the decision
+        st.markdown("## 🚀 Workflow Decision")
+        decision = workflow_rec.decision.replace('_', ' ').title()
+        if hasattr(workflow_rec, 'message'):
+            st.info(f"**Decision:** {decision} - {workflow_rec.message}")
+        else:
+            st.info(f"**Decision:** {decision}")
+
+
+def display_performance_metrics(processing_time: float, analysis: Dict[str, Any], recommendations: Dict[str, Any]):
+    """Display performance metrics in professional cards."""
     
-    # Client summary
-    client_summary = recommendations.get('client_summary')
-    if client_summary:
-        st.subheader("📝 Client Summary")
-        st.markdown(client_summary)
+    st.markdown("## 📈 Analysis Metrics")
     
-    # Attorney notes (if applicable)
-    attorney_notes = recommendations.get('attorney_notes')
-    if attorney_notes:
-        with st.expander("⚖️ Attorney Review Notes"):
-            st.markdown(attorney_notes)
-    
-    # Performance metrics
-    st.divider()
-    metrics_col1, metrics_col2, metrics_col3 = st.columns(3)
-    
-    with metrics_col1:
-        st.metric("Processing Time", f"{processing_time:.1f}s")
-    with metrics_col2:
-        st.metric("Nexus Strength", analysis.get('nexus_strength', 'Unknown'))
-    with metrics_col3:
-        total_improvements = recommendations.get('total_improvements', 0)
-        st.metric("Total Improvements", total_improvements)
-    
-    # Export options
-    st.subheader("💾 Export Results")
-    
-    col1, col2 = st.columns([1, 3])
+    col1, col2, col3, col4 = st.columns(4)
     
     with col1:
-        if st.button("📋 Copy Full Report", help="Copy complete analysis report"):
-            # Create formatted text for copying
+        st.markdown(f"""
+        <div class="metric-card fade-in">
+            <div class="kpi-icon">⚡</div>
+            <div class="kpi-value">{processing_time:.1f}s</div>
+            <div class="kpi-label">Processing Time</div>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with col2:
+        nexus_strength = analysis.get('nexus_strength', 'Unknown')
+        st.markdown(f"""
+        <div class="metric-card fade-in">
+            <div class="kpi-icon">🔗</div>
+            <div class="kpi-value" style="font-size: 1.2rem;">{nexus_strength}</div>
+            <div class="kpi-label">Nexus Strength</div>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with col3:
+        total_improvements = recommendations.get('total_improvements', 0)
+        st.markdown(f"""
+        <div class="metric-card fade-in">
+            <div class="kpi-icon">🔧</div>
+            <div class="kpi-value">{total_improvements}</div>
+            <div class="kpi-label">Improvements</div>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with col4:
+        confidence = analysis.get('confidence_level', 'High')
+        st.markdown(f"""
+        <div class="metric-card fade-in">
+            <div class="kpi-icon">📊</div>
+            <div class="kpi-value" style="font-size: 1.2rem;">{confidence}</div>
+            <div class="kpi-label">AI Confidence</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+
+def display_export_options(analysis: Dict[str, Any], scoring_results: Dict[str, Any], 
+                          recommendations: Dict[str, Any], processing_time: float):
+    """Display professional export options."""
+    
+    st.markdown("## 💾 Export & Documentation")
+    
+    col1, col2 = st.columns([1, 2])
+    
+    with col1:
+        if st.button("📋 Generate Full Report", 
+                    help="Generate complete analysis report for documentation", 
+                    use_container_width=True):
             export_text = format_enhanced_results_for_export(
                 analysis, scoring_results, recommendations, processing_time
             )
+            
+            st.markdown("### 📄 Complete Analysis Report")
             st.code(export_text, language=None)
+            
+            # Show download instructions
+            st.info("📥 **To save:** Copy the text above and paste into a document, or use your browser's save function.")
     
     with col2:
-        st.markdown("*Complete analysis report with scoring and recommendations*")
+        st.markdown("""
+        <div class="export-section">
+            <h4 style="margin-top: 0; color: #1e3a8a;">📊 Report Contents</h4>
+            <ul style="margin: 0; color: #374151;">
+                <li><strong>Executive Summary</strong> - Overall score and recommendation</li>
+                <li><strong>Component Analysis</strong> - Detailed scoring breakdown</li>
+                <li><strong>Key Findings</strong> - Strengths and critical issues</li>
+                <li><strong>Improvement Plan</strong> - Prioritized recommendations</li>
+                <li><strong>Next Steps</strong> - Workflow guidance</li>
+                <li><strong>Technical Metrics</strong> - Performance and confidence data</li>
+            </ul>
+            <p style="margin-bottom: 0; color: #6b7280; font-style: italic;">
+                Professional format suitable for client communication and case documentation
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
 
 
 def format_enhanced_results_for_export(analysis: Dict[str, Any], scoring_results: Dict[str, Any],
