@@ -1,0 +1,49 @@
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Logs
+*.log
+streamlit.log
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Local development
+*.db
+*.sqlite3
+instance/
+.cache/
+
+# API Keys and Secrets
+secrets.json
+config.json
+*.key
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.bak
