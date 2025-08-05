@@ -99,7 +99,7 @@ jobs:
         PYTHONPATH: ${{ github.workspace }}
       run: |
         echo "Running PHI Compliance Test Suite..."
-        python test_phi_compliance.py > test_logs/phi-compliance-ci.log 2>&1
+        python test_phi_compliance_ci.py > test_logs/phi-compliance-ci.log 2>&1
         echo "PHI Compliance tests completed"
 
     - name: Run Error Handling Tests
