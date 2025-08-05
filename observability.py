@@ -304,7 +304,9 @@ class MetricsCollector:
             max_data_points: Maximum data points to keep in memory
         """
         self.max_data_points = max_data_points
-        self._metrics: Dict[str, deque] = defaultdict(lambda: deque(maxlen=max_data_points))
+        self._metrics: Dict[str, deque] = defaultdict(
+            lambda: deque(maxlen=max_data_points)
+        )
         self._counters: Dict[str, int] = defaultdict(int)
         self._gauges: Dict[str, float] = defaultdict(float)
         self._timers: Dict[str, List[float]] = defaultdict(list)
@@ -453,7 +455,9 @@ class PerformanceMonitor:
         """
         self.metrics = metrics_collector
         self.logger = logger
-        self._active_requests: Dict[str, float] = defaultdict(float)  # request_id -> start_time
+        self._active_requests: Dict[str, float] = defaultdict(
+            float
+        )  # request_id -> start_time
         self._lock = threading.RLock()
 
     def start_request_tracking(

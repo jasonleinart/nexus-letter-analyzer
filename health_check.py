@@ -52,7 +52,11 @@ def check_system_health() -> Dict[str, Any]:
     Returns:
         Dictionary with health status information
     """
-    health_status: Dict[str, Any] = {"timestamp": time.time(), "status": "healthy", "checks": {}}
+    health_status: Dict[str, Any] = {
+        "timestamp": time.time(),
+        "status": "healthy",
+        "checks": {},
+    }
 
     # Check Streamlit application
     streamlit_healthy = check_streamlit_health()
