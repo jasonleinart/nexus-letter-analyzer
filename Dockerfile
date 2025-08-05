@@ -7,6 +7,7 @@ FROM python:3.11-alpine AS builder
 # Install build dependencies
 RUN apk add --no-cache \
     gcc \
+    g++ \
     musl-dev \
     libffi-dev \
     openssl-dev \
@@ -18,6 +19,8 @@ WORKDIR /build
 
 # Copy requirements and install dependencies
 COPY requirements.txt .
+# Upgrade pip to help with wheel resolution
+RUN pip install --upgrade pip
 RUN pip install --no-cache-dir --user -r requirements.txt
 
 # Production stage
