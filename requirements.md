@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-Build a functional AI-powered nexus letter analysis system for disability law firms. This is a proof-of-concept demonstration for Disability Law Group's AI Systems & Technology Integration Manager position, showcasing practical AI implementation for legal workflow optimization.
+Build a functional AI-powered nexus letter analysis system for disability law firms. This is a proof-of-concept demonstration showcasing practical AI implementation for legal workflow optimization.
 
 ## Business Context
 

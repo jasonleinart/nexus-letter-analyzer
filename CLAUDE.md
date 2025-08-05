@@ -63,7 +63,7 @@ Claude is expected to:
 ## 🎯 Project Goals and Constraints
 
 ### Business Objectives
-- **Interview Demonstration**: Showcase AI systems integration skills for Disability Law Group position
+- **Professional Demonstration**: Showcase AI systems integration skills for legal workflow optimization
 - **Real AI Implementation**: Use actual OpenAI GPT-4 API, not mock data
 - **Legal Domain Expertise**: Demonstrate understanding of VA nexus letter requirements
 - **Professional Presentation**: Create system suitable for law firm environment

@@ -125,7 +125,7 @@ This document maps the Nexus Letter AI Analyzer system's Protected Health Inform
 Common Legal Terms Excluded:
 - "Veterans Affairs", "Department of Veterans Affairs"
 - "Social Security Administration"
-- "Disability Law Group"
+- "Legal AI Analysis Tool"
 - "Medical Center", "Healthcare System"
 - Standard legal document language
 - Common medical terminology

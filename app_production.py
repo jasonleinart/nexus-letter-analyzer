@@ -757,7 +757,7 @@ def main():
         Nexus Letter AI Analyzer v3.0 - Production Ready<br>
         🛡️ HIPAA Compliant • ⚡ Circuit Breaker Protected • 📊 Full Observability<br>
         Session: {st.session_state.production_components['session_id'][:8]} | 
-        Powered by OpenAI GPT-4 | Developed for Disability Law Group
+        Powered by OpenAI GPT-4 | Professional Legal AI Analysis
     </div>
     """,
         unsafe_allow_html=True,
