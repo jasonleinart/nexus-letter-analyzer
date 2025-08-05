@@ -53,7 +53,7 @@ jobs:
       run: safety check --json --output safety-report.json || true
 
     - name: Upload security reports
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: security-reports
         path: |
@@ -123,7 +123,7 @@ jobs:
         echo "Observability tests completed"
 
     - name: Upload test logs
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: test-logs-${{ matrix.test-suite }}
@@ -144,7 +144,7 @@ jobs:
         fi
 
     - name: Upload test report
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: test-report-${{ matrix.test-suite }}
@@ -254,7 +254,7 @@ jobs:
         echo "Integration tests completed successfully"
 
     - name: Upload integration test logs
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: integration-test-logs
@@ -269,7 +269,7 @@ jobs:
     
     steps:
     - name: Download all test artifacts
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
 
     - name: Generate comprehensive test report
       run: |
@@ -308,7 +308,7 @@ jobs:
         echo "- ✅ Integration tests completed" >> final-test-report.md
 
     - name: Upload final test report
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: final-test-report
         path: final-test-report.md
