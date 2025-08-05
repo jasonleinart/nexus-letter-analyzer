@@ -2,7 +2,7 @@
 
 import re
 import logging
-from typing import Tuple, Optional, Dict, Any
+from typing import Tuple, Optional, Dict, Any, List
 from config import get_settings
 
 # Configure logging
@@ -225,7 +225,7 @@ class TextProcessor:
         Returns:
             Dictionary with extracted components
         """
-        components = {
+        components: Dict[str, Optional[str]] = {
             "header": None,
             "recipient": None,
             "subject": None,
@@ -264,7 +264,7 @@ class TextProcessor:
                 break
 
         # Extract main body (everything between recipient and signature)
-        body_lines = []
+        body_lines: List[str] = []
         in_body = False
 
         for line in lines:

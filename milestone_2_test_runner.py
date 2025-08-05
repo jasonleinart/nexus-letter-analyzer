@@ -110,7 +110,7 @@ Dr. Jones
 """,
         }
 
-    def run_all_tests(self) -> Dict[str, bool]:
+    def run_all_tests(self) -> Dict[str, Any]:
         """Execute complete test suite."""
         print("=== MILESTONE 2 COMPREHENSIVE TEST EXECUTION ===\n")
         print(
@@ -799,13 +799,13 @@ Dr. Jones
 
         # Return summary for validation log
         return {
-            "total_tests": total_tests,
-            "passed_tests": passed_tests,
-            "success_rate": (
+            "total_tests": total_tests,  # type: ignore[dict-item]
+            "passed_tests": passed_tests,  # type: ignore[dict-item]
+            "success_rate": (  # type: ignore[dict-item]
                 (passed_tests / total_tests * 100) if total_tests > 0 else 0
             ),
-            "execution_time": str(execution_time),
-            "category_results": category_results,
+            "execution_time": str(execution_time),  # type: ignore[dict-item]
+            "category_results": category_results,  # type: ignore[dict-item]
         }
 
 

@@ -5,7 +5,7 @@ Returns 0 for healthy, 1 for unhealthy.
 """
 
 import sys
-import requests
+import requests  # type: ignore[import-untyped]
 import time
 from typing import Dict, Any
 
@@ -52,7 +52,7 @@ def check_system_health() -> Dict[str, Any]:
     Returns:
         Dictionary with health status information
     """
-    health_status = {"timestamp": time.time(), "status": "healthy", "checks": {}}
+    health_status: Dict[str, Any] = {"timestamp": time.time(), "status": "healthy", "checks": {}}
 
     # Check Streamlit application
     streamlit_healthy = check_streamlit_health()

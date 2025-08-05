@@ -104,7 +104,7 @@ class CircuitBreaker:
         self.state = CircuitBreakerState.CLOSED
         self.failure_count = 0
         self.success_count = 0
-        self.last_failure_time = None
+        self.last_failure_time: Optional[float] = None
         self._lock = threading.RLock()
         self.logger = logging.getLogger(f"circuit_breaker.{name}")
 
@@ -759,7 +759,7 @@ if __name__ == "__main__":
         enable_fallback=True,
         correlation_id="test-123",
     )
-    def test_analysis(text: str) -> Dict[str, Any]:
+    def test_analysis(text: str) -> str:
         return unreliable_function(text)
 
     # Test

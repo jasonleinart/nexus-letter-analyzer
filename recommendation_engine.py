@@ -1,7 +1,7 @@
 """Recommendation Engine for nexus letter improvement and workflow decisions."""
 
 import logging
-from typing import Dict, List, Tuple, Optional
+from typing import Dict, List, Tuple, Optional, Any
 from dataclasses import dataclass
 from datetime import datetime
 
@@ -273,7 +273,7 @@ class RecommendationEngine:
         return suggestions
 
     def _map_issues_to_suggestions(
-        self, component: str, issues: List[str], score_breakdown: any
+        self, component: str, issues: List[str], score_breakdown: Any
     ) -> List[ImprovementSuggestion]:
         """Map identified issues to specific improvement suggestions."""
         suggestions = []
@@ -460,7 +460,7 @@ class RecommendationEngine:
         notes += "\n**Critical Review Points:**\n"
 
         # Group improvements by component
-        by_component = {}
+        by_component: Dict[str, List[ImprovementSuggestion]] = {}
         for imp in improvements[:10]:  # Top 10 improvements
             if imp.component not in by_component:
                 by_component[imp.component] = []

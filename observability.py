@@ -304,10 +304,10 @@ class MetricsCollector:
             max_data_points: Maximum data points to keep in memory
         """
         self.max_data_points = max_data_points
-        self._metrics = defaultdict(lambda: deque(maxlen=max_data_points))
-        self._counters = defaultdict(int)
-        self._gauges = defaultdict(float)
-        self._timers = defaultdict(list)
+        self._metrics: Dict[str, deque] = defaultdict(lambda: deque(maxlen=max_data_points))
+        self._counters: Dict[str, int] = defaultdict(int)
+        self._gauges: Dict[str, float] = defaultdict(float)
+        self._timers: Dict[str, List[float]] = defaultdict(list)
         self._lock = threading.RLock()
 
     def increment_counter(
@@ -417,7 +417,7 @@ class MetricsCollector:
     def get_all_metrics_snapshot(self) -> Dict[str, Any]:
         """Get snapshot of all current metrics."""
         with self._lock:
-            snapshot = {
+            snapshot: Dict[str, Any] = {
                 "timestamp": datetime.utcnow().isoformat() + "Z",
                 "counters": dict(self._counters),
                 "gauges": dict(self._gauges),
@@ -453,7 +453,7 @@ class PerformanceMonitor:
         """
         self.metrics = metrics_collector
         self.logger = logger
-        self._active_requests = defaultdict(float)  # request_id -> start_time
+        self._active_requests: Dict[str, float] = defaultdict(float)  # request_id -> start_time
         self._lock = threading.RLock()
 
     def start_request_tracking(

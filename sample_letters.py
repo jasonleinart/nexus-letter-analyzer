@@ -4,7 +4,7 @@ This module provides high-quality sample letters, demonstration scenarios,
 and talking points for professional presentation of the AI analysis system.
 """
 
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Any, Union
 
 STRONG_NEXUS_LETTER = """
 University Medical Center
@@ -186,7 +186,7 @@ class DemoDataManager:
         self.demo_analytics = self._generate_demo_analytics()
         self.talking_points = self._create_demonstration_script()
 
-    def _load_enhanced_sample_letters(self) -> Dict:
+    def _load_enhanced_sample_letters(self) -> Dict[str, Any]:
         """Enhanced sample letters with professional demonstration focus."""
 
         enhanced_samples = SAMPLE_LETTERS.copy()
@@ -337,7 +337,7 @@ class DemoDataManager:
             - Military service record review summary
             - Relevant peer-reviewed literature citations
             """,
-            "expected_scores": {
+            "expected_scores": {  # type: ignore[dict-item]
                 "medical_opinion_score": 25,
                 "service_connection_score": 24,
                 "medical_rationale_score": 24,
@@ -371,7 +371,7 @@ class DemoDataManager:
             Dr. Mike
             Family Medicine
             """,
-            "expected_scores": {
+            "expected_scores": {  # type: ignore[dict-item]
                 "medical_opinion_score": 8,
                 "service_connection_score": 10,
                 "medical_rationale_score": 6,

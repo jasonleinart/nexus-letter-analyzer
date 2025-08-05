@@ -248,7 +248,7 @@ class PHIDetectionEngine:
         Returns:
             List of PHI detections found
         """
-        detections = []
+        detections: List[PHIDetection] = []
 
         if not text or not text.strip():
             return detections
@@ -340,7 +340,7 @@ class PHIDetectionEngine:
         # Sort by confidence (descending) then by position
         detections.sort(key=lambda x: (-x.confidence, x.start_position))
 
-        filtered = []
+        filtered: List[PHIDetection] = []
         for detection in detections:
             # Check if this detection overlaps with any already accepted detection
             overlaps = False
