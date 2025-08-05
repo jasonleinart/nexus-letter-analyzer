@@ -472,13 +472,15 @@ def run_all_tests():
         print()
         print("RECOMMENDATION: System NOT READY for legal industry deployment")
         print("Requires immediate PHI compliance implementation before production use")
+        return 0
 
     except Exception as e:
         print(f"CRITICAL TEST FAILURE: {str(e)}")
         import traceback
-
         traceback.print_exc()
+        return 1
 
 
 if __name__ == "__main__":
-    run_all_tests()
+    exit_code = run_all_tests()
+    sys.exit(exit_code)

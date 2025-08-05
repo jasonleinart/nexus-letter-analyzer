@@ -109,7 +109,7 @@ jobs:
         PYTHONPATH: ${{ github.workspace }}
       run: |
         echo "Running Error Handling Test Suite..."
-        python test_error_handling.py > test_logs/error-handling-ci.log 2>&1
+        python test_error_handling_ci.py > test_logs/error-handling-ci.log 2>&1
         echo "Error handling tests completed"
 
     - name: Run Observability Tests
