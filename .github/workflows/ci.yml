@@ -264,8 +264,8 @@ jobs:
       run: |
         echo "Running integration tests with Docker Compose..."
         
-        # Run test suite in container
-        docker-compose --profile test run --rm nexus-test-runner
+        # Run test suite in container using modern docker compose syntax
+        docker compose --profile test run --rm nexus-test-runner
         
         echo "Integration tests completed successfully"
 

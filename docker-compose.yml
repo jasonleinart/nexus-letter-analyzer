@@ -76,13 +76,13 @@ services:
       - nexus-network
     command: >
       sh -c "
-        echo 'Running PHI Compliance Tests...' &&
-        python test_phi_compliance.py &&
-        echo 'Running Error Handling Tests...' &&
-        python test_error_handling.py &&
+        echo 'Running PHI Compliance Tests (CI)...' &&
+        python test_phi_compliance_ci.py &&
+        echo 'Running Error Handling Tests (CI)...' &&
+        python test_error_handling_ci.py &&
         echo 'Running Observability Tests...' &&
         python test_observability_comprehensive.py &&
-        echo 'All tests completed successfully!'
+        echo 'All integration tests completed successfully!'
       "
     profiles:
       - test
