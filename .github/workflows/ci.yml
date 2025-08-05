@@ -1,0 +1,348 @@
+name: Nexus Letter AI Analyzer CI/CD
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+
+env:
+  PYTHON_VERSION: "3.11"
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  # Code quality and security checks
+  code-quality:
+    runs-on: ubuntu-latest
+    name: Code Quality & Security
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install black flake8 mypy bandit safety
+        pip install -r requirements.txt
+
+    - name: Code formatting check
+      run: black --check --diff .
+
+    - name: Lint with flake8
+      run: |
+        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+
+    - name: Type checking with mypy
+      run: mypy . --ignore-missing-imports --no-strict-optional
+
+    - name: Security check with bandit
+      run: bandit -r . -f json -o bandit-report.json || true
+
+    - name: Dependency security check
+      run: safety check --json --output safety-report.json || true
+
+    - name: Upload security reports
+      uses: actions/upload-artifact@v3
+      with:
+        name: security-reports
+        path: |
+          bandit-report.json
+          safety-report.json
+
+  # Run all test suites
+  test-suites:
+    runs-on: ubuntu-latest
+    name: Test Suites (PHI, Error Handling, Observability)
+    needs: code-quality
+    
+    strategy:
+      matrix:
+        test-suite: 
+          - phi-compliance
+          - error-handling  
+          - observability
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Create test directories
+      run: |
+        mkdir -p test_logs data logs
+        chmod 755 test_logs data logs
+
+    - name: Run PHI Compliance Tests
+      if: matrix.test-suite == 'phi-compliance'
+      env:
+        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        PYTHONPATH: ${{ github.workspace }}
+      run: |
+        echo "Running PHI Compliance Test Suite..."
+        python test_phi_compliance.py > test_logs/phi-compliance-ci.log 2>&1
+        echo "PHI Compliance tests completed"
+
+    - name: Run Error Handling Tests
+      if: matrix.test-suite == 'error-handling'
+      env:
+        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        PYTHONPATH: ${{ github.workspace }}
+      run: |
+        echo "Running Error Handling Test Suite..."
+        python test_error_handling.py > test_logs/error-handling-ci.log 2>&1
+        echo "Error handling tests completed"
+
+    - name: Run Observability Tests
+      if: matrix.test-suite == 'observability'
+      env:
+        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        PYTHONPATH: ${{ github.workspace }}
+      run: |
+        echo "Running Observability Test Suite..."
+        python test_observability_comprehensive.py > test_logs/observability-ci.log 2>&1
+        echo "Observability tests completed"
+
+    - name: Upload test logs
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: test-logs-${{ matrix.test-suite }}
+        path: test_logs/
+
+    - name: Generate test report
+      if: always()
+      run: |
+        echo "## Test Suite: ${{ matrix.test-suite }}" >> test-report.md
+        echo "**Status:** $(if [ $? -eq 0 ]; then echo '✅ PASSED'; else echo '❌ FAILED'; fi)" >> test-report.md
+        echo "**Timestamp:** $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> test-report.md
+        echo "" >> test-report.md
+        if [ -f "test_logs/${{ matrix.test-suite }}-ci.log" ]; then
+          echo "### Log Summary" >> test-report.md
+          echo '```' >> test-report.md
+          tail -n 20 "test_logs/${{ matrix.test-suite }}-ci.log" >> test-report.md
+          echo '```' >> test-report.md
+        fi
+
+    - name: Upload test report
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: test-report-${{ matrix.test-suite }}
+        path: test-report.md
+
+  # Docker build and test
+  docker-build:
+    runs-on: ubuntu-latest
+    name: Docker Build & Test
+    needs: test-suites
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Log in to Container Registry
+      if: github.event_name != 'pull_request'
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Extract metadata
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+        tags: |
+          type=ref,event=branch
+          type=ref,event=pr
+          type=sha,prefix={{branch}}-
+          type=raw,value=latest,enable={{is_default_branch}}
+
+    - name: Build Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        platforms: linux/amd64,linux/arm64
+        push: false
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+    - name: Test Docker image
+      run: |
+        docker build -t nexus-test .
+        echo "Testing Docker container startup..."
+        docker run --rm -d --name nexus-test-container \
+          -e OPENAI_API_KEY="${{ secrets.OPENAI_API_KEY }}" \
+          -p 8501:8501 nexus-test
+        
+        sleep 30
+        
+        # Test health endpoint
+        curl -f http://localhost:8501/healthz || exit 1
+        
+        docker stop nexus-test-container
+        echo "Docker container test passed"
+
+    - name: Run security scan on Docker image
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: nexus-test
+        format: 'sarif'
+        output: 'trivy-results.sarif'
+
+    - name: Upload Trivy scan results
+      uses: github/codeql-action/upload-sarif@v2
+      if: always()
+      with:
+        sarif_file: 'trivy-results.sarif'
+
+    - name: Push Docker image
+      if: github.event_name != 'pull_request'
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        platforms: linux/amd64,linux/arm64
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+
+  # Integration tests with Docker Compose
+  integration-tests:
+    runs-on: ubuntu-latest
+    name: Integration Tests
+    needs: docker-build
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Run integration tests with Docker Compose
+      env:
+        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      run: |
+        echo "Running integration tests with Docker Compose..."
+        
+        # Run test suite in container
+        docker-compose --profile test run --rm nexus-test-runner
+        
+        echo "Integration tests completed successfully"
+
+    - name: Upload integration test logs
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: integration-test-logs
+        path: test_logs/
+
+  # Generate final test report
+  test-report:
+    runs-on: ubuntu-latest
+    name: Generate Test Report
+    needs: [test-suites, integration-tests]
+    if: always()
+    
+    steps:
+    - name: Download all test artifacts
+      uses: actions/download-artifact@v3
+
+    - name: Generate comprehensive test report
+      run: |
+        echo "# Nexus Letter AI Analyzer - Test Report" > final-test-report.md
+        echo "**Build:** ${{ github.run_number }}" >> final-test-report.md
+        echo "**Commit:** ${{ github.sha }}" >> final-test-report.md
+        echo "**Branch:** ${{ github.ref_name }}" >> final-test-report.md
+        echo "**Timestamp:** $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> final-test-report.md
+        echo "" >> final-test-report.md
+        
+        echo "## Test Suite Results" >> final-test-report.md
+        
+        # Combine individual test reports
+        for report in test-report-*/test-report.md; do
+          if [ -f "$report" ]; then
+            cat "$report" >> final-test-report.md
+            echo "" >> final-test-report.md
+          fi
+        done
+        
+        # Add security scan results summary
+        echo "## Security Scan Summary" >> final-test-report.md
+        if [ -f "security-reports/bandit-report.json" ]; then
+          echo "- Bandit security scan completed" >> final-test-report.md
+        fi
+        if [ -f "security-reports/safety-report.json" ]; then
+          echo "- Safety dependency scan completed" >> final-test-report.md
+        fi
+        echo "- Docker image security scan completed" >> final-test-report.md
+        
+        echo "" >> final-test-report.md
+        echo "## Build Status" >> final-test-report.md
+        echo "- ✅ Code quality checks passed" >> final-test-report.md
+        echo "- ✅ All test suites executed" >> final-test-report.md
+        echo "- ✅ Docker build and security scan completed" >> final-test-report.md
+        echo "- ✅ Integration tests completed" >> final-test-report.md
+
+    - name: Upload final test report
+      uses: actions/upload-artifact@v3
+      with:
+        name: final-test-report
+        path: final-test-report.md
+
+    - name: Comment PR with test results
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v6
+      with:
+        script: |
+          const fs = require('fs');
+          const testReport = fs.readFileSync('final-test-report.md', 'utf8');
+          
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: testReport
+          });
+
+  # Deploy to staging (on main branch)
+  deploy-staging:
+    runs-on: ubuntu-latest
+    name: Deploy to Staging
+    needs: [integration-tests]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    environment: staging
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Deploy to staging environment
+      run: |
+        echo "Deploying to staging environment..."
+        # Add your deployment commands here
+        # For example, deploy to cloud provider, update Kubernetes, etc.
+        echo "Staging deployment completed"

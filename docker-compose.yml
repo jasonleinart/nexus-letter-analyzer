@@ -1,0 +1,114 @@
+version: '3.8'
+
+services:
+  # Development configuration
+  nexus-analyzer-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: nexus-analyzer-dev
+    ports:
+      - "8501:8501"
+    environment:
+      - ENVIRONMENT=development
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - DEBUG=true
+      - LOG_LEVEL=DEBUG
+    volumes:
+      # Mount source code for development
+      - .:/app
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./test_logs:/app/test_logs
+    networks:
+      - nexus-network
+    restart: unless-stopped
+    profiles:
+      - dev
+
+  # Production configuration
+  nexus-analyzer-prod:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: nexus-analyzer-prod
+    ports:
+      - "80:8501"
+    environment:
+      - ENVIRONMENT=production
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - DEBUG=false
+      - LOG_LEVEL=INFO
+      - STREAMLIT_BROWSER_GATHER_USAGE_STATS=false
+    volumes:
+      # Production volumes - data only, no source code
+      - nexus-data:/app/data
+      - nexus-logs:/app/logs
+    networks:
+      - nexus-network
+    restart: always
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8501/healthz', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    profiles:
+      - prod
+
+  # Test runner service
+  nexus-test-runner:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: nexus-test-runner
+    environment:
+      - ENVIRONMENT=test
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - PYTHONPATH=/app
+    volumes:
+      - .:/app
+      - ./test_logs:/app/test_logs
+    networks:
+      - nexus-network
+    command: >
+      sh -c "
+        echo 'Running PHI Compliance Tests...' &&
+        python test_phi_compliance.py &&
+        echo 'Running Error Handling Tests...' &&
+        python test_error_handling.py &&
+        echo 'Running Observability Tests...' &&
+        python test_observability_comprehensive.py &&
+        echo 'All tests completed successfully!'
+      "
+    profiles:
+      - test
+
+  # Security scanner (for CI/CD)
+  security-scanner:
+    image: aquasec/trivy:latest
+    container_name: nexus-security-scanner
+    volumes:
+      - .:/workspace
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: >
+      sh -c "
+        echo 'Running security scan...' &&
+        trivy fs --exit-code 1 --severity HIGH,CRITICAL /workspace &&
+        echo 'Security scan completed successfully!'
+      "
+    profiles:
+      - security
+
+networks:
+  nexus-network:
+    driver: bridge
+
+volumes:
+  nexus-data:
+    driver: local
+  nexus-logs:
+    driver: local

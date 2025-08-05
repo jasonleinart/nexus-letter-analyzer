@@ -1,0 +1,99 @@
+# Git and version control
+.git
+.gitignore
+.gitattributes
+
+# Documentation and project files
+*.md
+!setup_instructions.md
+docs/
+milestone-*/
+CLAUDE.md
+
+# Development and testing files
+.vscode/
+.idea/
+*.log
+test_logs/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+.pytest_cache/
+.coverage
+.tox/
+.nox/
+
+# Environment and configuration
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+.venv/
+venv/
+env/
+ENV/
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Development dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+
+# Database files (keep structure but not data)
+*.db
+*.sqlite
+*.sqlite3
+data/*.db
+data/*.sqlite*
+
+# Large test files and sample data
+samples/
+test_data/
+*.sample
+
+# IDE and editor files
+*.sublime-project
+*.sublime-workspace
+.vscode/settings.json
+
+# Security sensitive files
+*.pem
+*.key
+*.crt
+secrets/
+private/
+
+# CI/CD specific files
+.github/
+.gitlab-ci.yml
+.travis.yml
+.circleci/
+
+# Docker files (don't copy docker files into docker)
+Dockerfile*
+docker-compose*.yml
+.dockerignore
