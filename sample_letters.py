@@ -101,97 +101,101 @@ General Practice
 
 # Dictionary for easy access
 SAMPLE_LETTERS = {
-    'strong': {
-        'title': 'Strong Nexus Letter - Coronary Artery Disease',
-        'description': 'Well-structured letter with clear medical opinion, detailed rationale, and proper probability language',
-        'text': STRONG_NEXUS_LETTER,
-        'expected_strength': 'Strong',
-        'key_features': [
-            'Clear probability statement (>50%)',
-            'Detailed medical rationale',
-            'Service connection well-established',
-            'Board-certified physician',
-            'Literature references',
-            'Professional formatting'
-        ]
+    "strong": {
+        "title": "Strong Nexus Letter - Coronary Artery Disease",
+        "description": "Well-structured letter with clear medical opinion, detailed rationale, and proper probability language",
+        "text": STRONG_NEXUS_LETTER,
+        "expected_strength": "Strong",
+        "key_features": [
+            "Clear probability statement (>50%)",
+            "Detailed medical rationale",
+            "Service connection well-established",
+            "Board-certified physician",
+            "Literature references",
+            "Professional formatting",
+        ],
     },
-    'moderate': {
-        'title': 'Moderate Nexus Letter - Back Injury',
-        'description': 'Basic letter with medical opinion but limited detail and rationale',
-        'text': MODERATE_NEXUS_LETTER,
-        'expected_strength': 'Moderate',
-        'key_features': [
-            'Basic medical opinion present',
-            'Timeline correlation mentioned',
-            'Limited medical rationale',
-            'Vague probability language',
-            'Missing detailed analysis'
-        ]
+    "moderate": {
+        "title": "Moderate Nexus Letter - Back Injury",
+        "description": "Basic letter with medical opinion but limited detail and rationale",
+        "text": MODERATE_NEXUS_LETTER,
+        "expected_strength": "Moderate",
+        "key_features": [
+            "Basic medical opinion present",
+            "Timeline correlation mentioned",
+            "Limited medical rationale",
+            "Vague probability language",
+            "Missing detailed analysis",
+        ],
     },
-    'weak': {
-        'title': 'Weak Nexus Letter - Knee Pain',
-        'description': 'Poor letter with uncertain opinion, no clear rationale, and unprofessional format',
-        'text': WEAK_NEXUS_LETTER,
-        'expected_strength': 'Weak',
-        'key_features': [
-            'Uncertain medical opinion',
-            'No clear probability statement',
-            'Lacks medical rationale',
-            'Unprofessional format',
-            'Vague language throughout'
-        ]
-    }
+    "weak": {
+        "title": "Weak Nexus Letter - Knee Pain",
+        "description": "Poor letter with uncertain opinion, no clear rationale, and unprofessional format",
+        "text": WEAK_NEXUS_LETTER,
+        "expected_strength": "Weak",
+        "key_features": [
+            "Uncertain medical opinion",
+            "No clear probability statement",
+            "Lacks medical rationale",
+            "Unprofessional format",
+            "Vague language throughout",
+        ],
+    },
 }
 
-def get_sample_letter(strength: str = 'strong') -> dict:
+
+def get_sample_letter(strength: str = "strong") -> dict:
     """
     Get a sample letter by strength level.
-    
+
     Args:
         strength: 'strong', 'moderate', or 'weak'
-        
+
     Returns:
         Dictionary with letter information
     """
-    return SAMPLE_LETTERS.get(strength.lower(), SAMPLE_LETTERS['strong'])
+    return SAMPLE_LETTERS.get(strength.lower(), SAMPLE_LETTERS["strong"])
+
 
 def get_all_samples() -> dict:
     """Get all sample letters."""
     return SAMPLE_LETTERS
 
+
 def print_sample_info():
     """Print information about all sample letters."""
-    print("NEXUS LETTER SAMPLES\n" + "="*50)
-    
+    print("NEXUS LETTER SAMPLES\n" + "=" * 50)
+
     for key, sample in SAMPLE_LETTERS.items():
         print(f"\n{sample['title']} ({key.upper()})")
         print("-" * 40)
         print(f"Description: {sample['description']}")
         print(f"Expected Strength: {sample['expected_strength']}")
         print("Key Features:")
-        for feature in sample['key_features']:
+        for feature in sample["key_features"]:
             print(f"  • {feature}")
         print(f"Character Count: {len(sample['text'])}")
 
+
 class DemoDataManager:
     """Professional demonstration data manager for impressive system showcases."""
-    
+
     def __init__(self):
         """Initialize with enhanced demonstration scenarios."""
         self.sample_letters = self._load_enhanced_sample_letters()
         self.demo_analytics = self._generate_demo_analytics()
         self.talking_points = self._create_demonstration_script()
-    
+
     def _load_enhanced_sample_letters(self) -> Dict:
         """Enhanced sample letters with professional demonstration focus."""
-        
+
         enhanced_samples = SAMPLE_LETTERS.copy()
-        
+
         # Add additional high-impact demo letters
-        enhanced_samples['excellent_demo'] = {
-            'title': 'Excellent Nexus Letter - PTSD/Anxiety (Score: 94/100)',
-            'description': 'Premium quality letter demonstrating perfect VA compliance',
-            'text': """
+        enhanced_samples["excellent_demo"] = {
+            "title": "Excellent Nexus Letter - PTSD/Anxiety (Score: 94/100)",
+            "description": "Premium quality letter demonstrating perfect VA compliance",
+            "text": """
             [Professional Medical Practice Letterhead]
             Trauma & PTSD Specialists, P.C.
             Board Certified Psychiatry & Mental Health
@@ -333,25 +337,25 @@ class DemoDataManager:
             - Military service record review summary
             - Relevant peer-reviewed literature citations
             """,
-            'expected_scores': {
-                'medical_opinion_score': 25,
-                'service_connection_score': 24,
-                'medical_rationale_score': 24,
-                'professional_format_score': 25,
-                'overall_score': 94
+            "expected_scores": {
+                "medical_opinion_score": 25,
+                "service_connection_score": 24,
+                "medical_rationale_score": 24,
+                "professional_format_score": 25,
+                "overall_score": 94,
             },
-            'demo_talking_points': [
+            "demo_talking_points": [
                 "Perfect example of comprehensive VA compliance",
                 "Demonstrates AI's ability to recognize excellence",
                 "Shows detailed scoring rationale capabilities",
-                "Highlights professional format recognition"
-            ]
+                "Highlights professional format recognition",
+            ],
         }
-        
-        enhanced_samples['needs_improvement_demo'] = {
-            'title': 'Letter Requiring Improvement (Score: 42/100)',
-            'description': 'Demonstrates AI ability to identify critical issues and provide specific improvements',
-            'text': """
+
+        enhanced_samples["needs_improvement_demo"] = {
+            "title": "Letter Requiring Improvement (Score: 42/100)",
+            "description": "Demonstrates AI ability to identify critical issues and provide specific improvements",
+            "text": """
             Medical Office
             
             Hi,
@@ -367,109 +371,111 @@ class DemoDataManager:
             Dr. Mike
             Family Medicine
             """,
-            'expected_scores': {
-                'medical_opinion_score': 8,
-                'service_connection_score': 10,
-                'medical_rationale_score': 6,
-                'professional_format_score': 8,
-                'overall_score': 42
+            "expected_scores": {
+                "medical_opinion_score": 8,
+                "service_connection_score": 10,
+                "medical_rationale_score": 6,
+                "professional_format_score": 8,
+                "overall_score": 42,
             },
-            'demo_talking_points': [
+            "demo_talking_points": [
                 "Shows AI's critical issue identification",
                 "Demonstrates specific improvement recommendations",
                 "Highlights importance of professional standards",
-                "Shows system's educational value for attorneys"
+                "Shows system's educational value for attorneys",
             ],
-            'improvement_suggestions': [
+            "improvement_suggestions": [
                 "Add clear probability statement (>50% language)",
                 "Include detailed medical rationale with pathophysiology",
                 "Enhance professional formatting with letterhead",
                 "Add physician credentials and license information",
-                "Provide specific service connection analysis"
-            ]
+                "Provide specific service connection analysis",
+            ],
         }
-        
+
         return enhanced_samples
-    
+
     def _generate_demo_analytics(self) -> Dict:
         """Generate impressive demonstration analytics."""
         return {
-            'total_analyses': 247,
-            'avg_score': 78.3,
-            'auto_approve_rate': 34.2,
-            'attorney_review_rate': 48.6,
-            'revision_rate': 17.2,
-            'time_saved_hours': 52.4,
-            'cost_savings': 15720,
-            'roi_percentage': 340,
-            'accuracy_rate': 94.7,
-            'consistency_improvement': 67.3,
-            'client_satisfaction': 89.1,
-            'avg_processing_time': 12.4,
-            'component_performance': {
-                'medical_opinion_avg': 19.2,
-                'service_connection_avg': 18.7,
-                'medical_rationale_avg': 17.8,
-                'professional_format_avg': 20.1
-            }
+            "total_analyses": 247,
+            "avg_score": 78.3,
+            "auto_approve_rate": 34.2,
+            "attorney_review_rate": 48.6,
+            "revision_rate": 17.2,
+            "time_saved_hours": 52.4,
+            "cost_savings": 15720,
+            "roi_percentage": 340,
+            "accuracy_rate": 94.7,
+            "consistency_improvement": 67.3,
+            "client_satisfaction": 89.1,
+            "avg_processing_time": 12.4,
+            "component_performance": {
+                "medical_opinion_avg": 19.2,
+                "service_connection_avg": 18.7,
+                "medical_rationale_avg": 17.8,
+                "professional_format_avg": 20.1,
+            },
         }
-    
+
     def _create_demonstration_script(self) -> Dict:
         """Create professional demonstration talking points."""
         return {
-            'opening': [
+            "opening": [
                 "Welcome to the Nexus Letter AI Analyzer - a sophisticated system that transforms how disability law firms evaluate medical evidence",
                 "This isn't just another AI tool - it's a specialized legal technology solution built specifically for VA disability practice",
-                "Let me show you how this system delivers immediate value while maintaining the professional standards your practice demands"
+                "Let me show you how this system delivers immediate value while maintaining the professional standards your practice demands",
             ],
-            'key_features': [
+            "key_features": [
                 "Real-time GPT-4 analysis trained on VA disability requirements",
                 "Consistent 100-point scoring methodology aligned with VA standards",
                 "Professional workflow integration with clear attorney guidance",
-                "Comprehensive business analytics showing ROI and efficiency gains"
+                "Comprehensive business analytics showing ROI and efficiency gains",
             ],
-            'business_value': [
+            "business_value": [
                 "67% reduction in letter review time - from 45 minutes to under 30 seconds",
                 "340% ROI based on attorney time savings vs. AI processing costs",
                 "94.7% accuracy rate when compared to attorney evaluations",
-                "Professional presentation suitable for client communications"
+                "Professional presentation suitable for client communications",
             ],
-            'technical_excellence': [
+            "technical_excellence": [
                 "Built on OpenAI's most advanced language model with legal specialization",
                 "Sophisticated scoring algorithm with transparent methodology",
                 "Production-ready architecture with database persistence",
-                "Professional UI designed specifically for legal practice environments"
+                "Professional UI designed specifically for legal practice environments",
             ],
-            'closing': [
+            "closing": [
                 "This system represents the future of legal technology - AI that enhances rather than replaces professional judgment",
                 "Ready for immediate deployment with measurable business impact",
-                "Positions your firm at the forefront of legal innovation while improving client outcomes"
-            ]
+                "Positions your firm at the forefront of legal innovation while improving client outcomes",
+            ],
         }
-    
-    def get_demo_scenario(self, scenario_type: str = 'excellent') -> Dict:
+
+    def get_demo_scenario(self, scenario_type: str = "excellent") -> Dict:
         """Get a specific demonstration scenario."""
-        return self.sample_letters.get(f"{scenario_type}_demo", self.sample_letters.get('excellent_demo'))
-    
+        return self.sample_letters.get(
+            f"{scenario_type}_demo", self.sample_letters.get("excellent_demo")
+        )
+
     def get_before_after_scenario(self) -> Tuple[Dict, Dict]:
         """Get before/after improvement scenario for demonstration."""
-        before = self.sample_letters['needs_improvement_demo']
-        after = self.sample_letters['excellent_demo']
+        before = self.sample_letters["needs_improvement_demo"]
+        after = self.sample_letters["excellent_demo"]
         return before, after
-    
+
     def get_demonstration_script(self) -> Dict:
         """Get complete demonstration script with talking points."""
         return self.talking_points
-    
+
     def get_demo_analytics(self) -> Dict:
         """Get demonstration analytics data."""
         return self.demo_analytics
-    
+
     def print_demo_guide(self):
         """Print comprehensive demonstration guide."""
         print("NEXUS LETTER AI ANALYZER - DEMONSTRATION GUIDE")
         print("=" * 60)
-        
+
         print("\n🎯 DEMONSTRATION SEQUENCE:")
         print("-" * 30)
         print("1. System Overview & Business Value Proposition")
@@ -477,7 +483,7 @@ class DemoDataManager:
         print("3. Live Analysis - Problem Letter with Improvements")
         print("4. Analytics Dashboard - ROI & Business Impact")
         print("5. Q&A - Technical Architecture & Deployment")
-        
+
         print("\n📊 KEY METRICS TO HIGHLIGHT:")
         print("-" * 30)
         analytics = self.demo_analytics
@@ -486,20 +492,20 @@ class DemoDataManager:
                 print(f"• {key.replace('_', ' ').title()}: {value:.1f}")
             elif isinstance(value, int):
                 print(f"• {key.replace('_', ' ').title()}: {value:,}")
-        
+
         print("\n🎤 OPENING TALKING POINTS:")
         print("-" * 30)
-        for point in self.talking_points['opening']:
+        for point in self.talking_points["opening"]:
             print(f"• {point}")
-        
+
         print("\n💼 BUSINESS VALUE HIGHLIGHTS:")
         print("-" * 30)
-        for point in self.talking_points['business_value']:
+        for point in self.talking_points["business_value"]:
             print(f"• {point}")
-        
+
         print("\n🔧 TECHNICAL EXCELLENCE:")
         print("-" * 30)
-        for point in self.talking_points['technical_excellence']:
+        for point in self.talking_points["technical_excellence"]:
             print(f"• {point}")
 
 
@@ -511,7 +517,7 @@ def create_demo_manager() -> DemoDataManager:
 if __name__ == "__main__":
     # Show both original sample info and new demo guide
     print_sample_info()
-    print("\n" + "="*80 + "\n")
-    
+    print("\n" + "=" * 80 + "\n")
+
     demo_manager = create_demo_manager()
     demo_manager.print_demo_guide()

@@ -36,57 +36,67 @@ License #: TX-12345
 Phone: (555) 123-4567
 """
 
+
 def demonstrate_current_analysis():
     """Show what the current analysis provides."""
     print("🔍 CURRENT NEXUS LETTER ANALYZER FUNCTIONALITY")
     print("=" * 60)
     print("\nAnalyzing sample nexus letter...")
     print("-" * 60)
-    
+
     try:
         analyzer = create_analyzer()
         result = analyzer.analyze_letter(test_letter)
-        
+
         if not result.get("error"):
             analysis = result["analysis"]
-            
+
             print("\n✅ ANALYSIS RESULTS (What you get NOW in Milestone 1):\n")
-            
+
             print(f"📊 NEXUS STRENGTH: {analysis['nexus_strength']}")
-            print(f"   - Medical Opinion Present: {analysis['medical_opinion_present']}")
-            print(f"   - Service Connection Stated: {analysis['service_connection_stated']}")
-            print(f"   - Medical Rationale Provided: {analysis['medical_rationale_provided']}")
-            
+            print(
+                f"   - Medical Opinion Present: {analysis['medical_opinion_present']}"
+            )
+            print(
+                f"   - Service Connection Stated: {analysis['service_connection_stated']}"
+            )
+            print(
+                f"   - Medical Rationale Provided: {analysis['medical_rationale_provided']}"
+            )
+
             print(f"\n🏥 MEDICAL DETAILS:")
             print(f"   - Primary Condition: {analysis['primary_condition']}")
-            print(f"   - Service Connected To: {analysis['service_connected_condition']}")
+            print(
+                f"   - Service Connected To: {analysis['service_connected_condition']}"
+            )
             print(f"   - Connection Type: {analysis['connection_theory']}")
             print(f"   - Probability Statement: {analysis['probability_rating']}")
-            
+
             print(f"\n💪 STRENGTHS:")
-            for i, strength in enumerate(analysis['strengths'], 1):
+            for i, strength in enumerate(analysis["strengths"], 1):
                 print(f"   {i}. {strength}")
-            
+
             print(f"\n⚠️  WEAKNESSES/AREAS FOR IMPROVEMENT:")
-            for i, weakness in enumerate(analysis['weaknesses'], 1):
+            for i, weakness in enumerate(analysis["weaknesses"], 1):
                 print(f"   {i}. {weakness}")
-            
+
             print(f"\n📝 RECOMMENDATIONS:")
-            for i, rec in enumerate(analysis['recommendations'], 1):
+            for i, rec in enumerate(analysis["recommendations"], 1):
                 print(f"   {i}. {rec}")
-            
+
             print(f"\n📋 SUMMARY:")
             print(f"   {analysis['summary']}")
-            
+
             print("\n" + "=" * 60)
             print("🎯 This comprehensive analysis is available RIGHT NOW!")
             print("   Just paste a letter and click 'Analyze Letter'")
-            
+
         else:
             print(f"❌ Error: {result['message']}")
-            
+
     except Exception as e:
         print(f"❌ Error: {str(e)}")
+
 
 if __name__ == "__main__":
     demonstrate_current_analysis()
