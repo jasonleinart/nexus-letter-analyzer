@@ -477,6 +477,7 @@ def run_all_tests():
     except Exception as e:
         print(f"CRITICAL TEST FAILURE: {str(e)}")
         import traceback
+
         traceback.print_exc()
         return 1
 
