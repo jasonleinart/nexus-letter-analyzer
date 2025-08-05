@@ -1,18 +1,16 @@
 # Multi-stage Dockerfile for Nexus Letter AI Analyzer
-# Security-focused build with minimal Alpine base and non-root user
+# Security-focused build with Debian slim base and non-root user
 
 # Build stage for dependencies
-FROM python:3.11-alpine AS builder
+FROM python:3.11-slim-bullseye AS builder
 
 # Install build dependencies
-RUN apk add --no-cache \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
     g++ \
-    musl-dev \
     libffi-dev \
-    openssl-dev \
-    cargo \
-    rust
+    libssl-dev \
+    && rm -rf /var/lib/apt/lists/*
 
 # Create build directory
 WORKDIR /build
@@ -24,18 +22,18 @@ RUN pip install --upgrade pip
 RUN pip install --no-cache-dir --user -r requirements.txt
 
 # Production stage
-FROM python:3.11-alpine AS production
+FROM python:3.11-slim-bullseye AS production
 
 # Install runtime dependencies only
-RUN apk add --no-cache \
-    sqlite \
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    sqlite3 \
     ca-certificates \
     tzdata \
-    && rm -rf /var/cache/apk/*
+    && rm -rf /var/lib/apt/lists/*
 
 # Create non-root user for security
-RUN addgroup -g 1001 -S appgroup && \
-    adduser -u 1001 -S appuser -G appgroup
+RUN groupadd -g 1001 appgroup && \
+    useradd -u 1001 -g appgroup -m -s /bin/bash appuser
 
 # Set up application directory
 WORKDIR /app
