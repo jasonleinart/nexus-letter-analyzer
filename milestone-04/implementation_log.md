@@ -22,8 +22,8 @@ The Nexus Letter AI Analyzer has been successfully enhanced with comprehensive p
 
 #### Files Created/Modified:
 - `phi_compliance.py`: Comprehensive PHI protection system
-- `ai_analyzer_enhanced.py`: Integrated PHI protection in AI processing
-- `app_production.py`: Production UI with PHI protection notices
+- `ai_analyzer.py`: Integrated PHI protection in AI processing
+- `app.py`: Production UI with PHI protection notices
 
 #### Implementation Details:
 ```python

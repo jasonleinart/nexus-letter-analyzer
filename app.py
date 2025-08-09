@@ -569,43 +569,84 @@ def display_export_options(
     col1, col2 = st.columns([1, 2])
 
     with col1:
+        # Initialize session state for report
+        if "generated_report" not in st.session_state:
+            st.session_state.generated_report = None
+            
         if st.button(
             "📋 Generate Full Report",
             help="Generate complete analysis report for documentation",
             use_container_width=True,
         ):
-            export_text = format_enhanced_results_for_export(
+            # Generate and store the report in session state
+            st.session_state.generated_report = format_enhanced_results_for_export(
                 analysis, scoring_results, recommendations, processing_time
             )
-
+            
+        # Display the generated report if it exists
+        if st.session_state.generated_report:
             st.markdown("### 📄 Complete Analysis Report")
-            st.code(export_text, language=None)
+            st.code(st.session_state.generated_report, language=None)
 
             # Show download instructions
             st.info(
                 "📥 **To save:** Copy the text above and paste into a document, or use your browser's save function."
             )
+            
+            # Add a button to clear the report
+            if st.button("🗑️ Clear Report", help="Clear the generated report"):
+                st.session_state.generated_report = None
+                st.rerun()
 
     with col2:
-        st.markdown(
-            """
-        <div class="export-section">
-            <h4 style="margin-top: 0; color: #1e3a8a;">📊 Report Contents</h4>
-            <ul style="margin: 0; color: #374151;">
-                <li><strong>Executive Summary</strong> - Overall score and recommendation</li>
-                <li><strong>Component Analysis</strong> - Detailed scoring breakdown</li>
-                <li><strong>Key Findings</strong> - Strengths and critical issues</li>
-                <li><strong>Improvement Plan</strong> - Prioritized recommendations</li>
-                <li><strong>Next Steps</strong> - Workflow guidance</li>
-                <li><strong>Technical Metrics</strong> - Performance and confidence data</li>
-            </ul>
-            <p style="margin-bottom: 0; color: #6b7280; font-style: italic;">
-                Professional format suitable for client communication and case documentation
-            </p>
-        </div>
-        """,
-            unsafe_allow_html=True,
-        )
+        # Show dynamic report contents based on actual analysis
+        if st.session_state.generated_report:
+            # Extract key info from the actual report for preview
+            overall_score = scoring_results.get("overall_score", 0)
+            nexus_strength = analysis.get("nexus_strength", "Unknown")
+            workflow_decision = recommendations.get("workflow_recommendation", {})
+            decision = workflow_decision.decision.replace("_", " ").title() if hasattr(workflow_decision, 'decision') else "Not specified"
+            
+            st.markdown(
+                f"""
+            <div class="export-section">
+                <h4 style="margin-top: 0; color: #1e3a8a;">📊 Generated Report Summary</h4>
+                <ul style="margin: 0; color: #374151;">
+                    <li><strong>Overall Score:</strong> {overall_score}/100</li>
+                    <li><strong>Nexus Strength:</strong> {nexus_strength}</li>
+                    <li><strong>Workflow Decision:</strong> {decision}</li>
+                    <li><strong>Processing Time:</strong> {processing_time:.1f} seconds</li>
+                    <li><strong>Component Breakdowns:</strong> All 4 components analyzed</li>
+                    <li><strong>Recommendations:</strong> Priority improvements included</li>
+                </ul>
+                <p style="margin-bottom: 0; color: #6b7280; font-style: italic;">
+                    Full detailed report generated above for copying and documentation
+                </p>
+            </div>
+            """,
+                unsafe_allow_html=True,
+            )
+        else:
+            # Show generic contents when no report generated yet
+            st.markdown(
+                """
+            <div class="export-section">
+                <h4 style="margin-top: 0; color: #1e3a8a;">📊 Report Contents</h4>
+                <ul style="margin: 0; color: #374151;">
+                    <li><strong>Executive Summary</strong> - Overall score and recommendation</li>
+                    <li><strong>Component Analysis</strong> - Detailed scoring breakdown</li>
+                    <li><strong>Key Findings</strong> - Strengths and critical issues</li>
+                    <li><strong>Improvement Plan</strong> - Prioritized recommendations</li>
+                    <li><strong>Next Steps</strong> - Workflow guidance</li>
+                    <li><strong>Technical Metrics</strong> - Performance and confidence data</li>
+                </ul>
+                <p style="margin-bottom: 0; color: #6b7280; font-style: italic;">
+                    Professional format suitable for client communication and case documentation
+                </p>
+            </div>
+            """,
+                unsafe_allow_html=True,
+            )
 
 
 def format_enhanced_results_for_export(
@@ -757,10 +798,45 @@ def main():
         # Get user input
         letter_text, processor = get_user_input()
 
+        # Rate limiting check
+        if "last_analysis_time" not in st.session_state:
+            st.session_state.last_analysis_time = 0
+        if "analysis_count" not in st.session_state:
+            st.session_state.analysis_count = 0
+            
+        import time
+        current_time = time.time()
+        time_since_last = current_time - st.session_state.last_analysis_time
+        
+        # Reset count every hour
+        if time_since_last > 3600:  # 1 hour
+            st.session_state.analysis_count = 0
+            
+        # Show usage counter
+        remaining = 5 - st.session_state.analysis_count
+        if remaining > 0:
+            st.info(f"📊 **Demo Usage:** {remaining} analyses remaining this hour")
+        
+        # Rate limiting: max 5 analyses per hour
+        if st.session_state.analysis_count >= 5:
+            st.error("⏰ **Rate limit reached.** Please wait before analyzing another letter. (Max 5 per hour)")
+            st.info("This demo has usage limits to prevent API abuse. In production, authenticated users would have higher limits.")
+            st.stop()
+
         # Analysis section
         if st.button(
             "🚀 Analyze Nexus Letter", type="primary", use_container_width=True
         ):
+            # Clear any previous results when starting new analysis
+            if "generated_report" in st.session_state:
+                st.session_state.generated_report = None
+            if "analysis_results" in st.session_state:
+                st.session_state.analysis_results = None
+                
+            # Update rate limiting counters
+            st.session_state.last_analysis_time = current_time
+            st.session_state.analysis_count += 1
+                
             if not letter_text:
                 st.warning("Please enter nexus letter text to analyze.")
                 return
@@ -835,14 +911,27 @@ def main():
                         )
                         st.success("✅ Analysis completed successfully!")
 
-                    # Display enhanced results
-                    display_analysis_results(
-                        ai_results, scoring_results, recommendations, processing_time
-                    )
+                    # Store results in session state for persistence
+                    st.session_state.analysis_results = {
+                        "ai_results": ai_results,
+                        "scoring_results": scoring_results,
+                        "recommendations": recommendations,
+                        "processing_time": processing_time,
+                    }
 
                 except Exception as e:
                     st.error(f"**Analysis Error:** {str(e)}")
                     st.markdown("Please check your configuration and try again.")
+
+        # Display results if they exist in session state
+        if "analysis_results" in st.session_state and st.session_state.analysis_results:
+            results = st.session_state.analysis_results
+            display_analysis_results(
+                results["ai_results"],
+                results["scoring_results"],
+                results["recommendations"],
+                results["processing_time"],
+            )
 
     with tab2:
         # Analytics Dashboard

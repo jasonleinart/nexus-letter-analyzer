@@ -28,8 +28,11 @@ streamlit.log
 
 # Testing
 .pytest_cache/
+.mypy_cache/
 .coverage
 htmlcov/
+.tox/
+.nox/
 
 # Local development
 *.db
@@ -47,3 +50,35 @@ tmp/
 temp/
 *.tmp
 *.bak
+
+# Development iterations and experimental files
+*_enhanced.py
+*_fixed.py
+*_test.py
+*_debug.py
+*_experimental.py
+*_backup.py
+*_old.py
+*_new.py
+quick_*
+test_quick_*
+debug_*
+
+# Development databases and local data
+*.db
+*.sqlite
+*.sqlite3
+local_data/
+dev_data/
+
+# Development scripts and temporary runners
+run_*.py
+start_*.sh
+deploy_*.sh
+setup_*.sh
+
+# Personal notes and TODO files
+NOTES.md
+TODO.md
+PERSONAL.md
+scratch.md

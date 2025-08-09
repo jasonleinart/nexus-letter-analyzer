@@ -73,4 +73,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
 EXPOSE 8501
 
 # Production command
-CMD ["streamlit", "run", "app_production.py", "--server.port=8501", "--server.address=0.0.0.0", "--server.enableCORS=false"]
+CMD ["streamlit", "run", "app.py", "--server.port=8501", "--server.address=0.0.0.0", "--server.enableCORS=false"]
