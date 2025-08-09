@@ -572,7 +572,7 @@ def display_export_options(
         # Initialize session state for report
         if "generated_report" not in st.session_state:
             st.session_state.generated_report = None
-            
+
         if st.button(
             "📋 Generate Full Report",
             help="Generate complete analysis report for documentation",
@@ -582,7 +582,7 @@ def display_export_options(
             st.session_state.generated_report = format_enhanced_results_for_export(
                 analysis, scoring_results, recommendations, processing_time
             )
-            
+
         # Display the generated report if it exists
         if st.session_state.generated_report:
             st.markdown("### 📄 Complete Analysis Report")
@@ -592,7 +592,7 @@ def display_export_options(
             st.info(
                 "📥 **To save:** Copy the text above and paste into a document, or use your browser's save function."
             )
-            
+
             # Add a button to clear the report
             if st.button("🗑️ Clear Report", help="Clear the generated report"):
                 st.session_state.generated_report = None
@@ -605,8 +605,12 @@ def display_export_options(
             overall_score = scoring_results.get("overall_score", 0)
             nexus_strength = analysis.get("nexus_strength", "Unknown")
             workflow_decision = recommendations.get("workflow_recommendation", {})
-            decision = workflow_decision.decision.replace("_", " ").title() if hasattr(workflow_decision, 'decision') else "Not specified"
-            
+            decision = (
+                workflow_decision.decision.replace("_", " ").title()
+                if hasattr(workflow_decision, "decision")
+                else "Not specified"
+            )
+
             st.markdown(
                 f"""
             <div class="export-section">
@@ -803,24 +807,29 @@ def main():
             st.session_state.last_analysis_time = 0
         if "analysis_count" not in st.session_state:
             st.session_state.analysis_count = 0
-            
+
         import time
+
         current_time = time.time()
         time_since_last = current_time - st.session_state.last_analysis_time
-        
+
         # Reset count every hour
         if time_since_last > 3600:  # 1 hour
             st.session_state.analysis_count = 0
-            
+
         # Show usage counter
         remaining = 5 - st.session_state.analysis_count
         if remaining > 0:
             st.info(f"📊 **Demo Usage:** {remaining} analyses remaining this hour")
-        
+
         # Rate limiting: max 5 analyses per hour
         if st.session_state.analysis_count >= 5:
-            st.error("⏰ **Rate limit reached.** Please wait before analyzing another letter. (Max 5 per hour)")
-            st.info("This demo has usage limits to prevent API abuse. In production, authenticated users would have higher limits.")
+            st.error(
+                "⏰ **Rate limit reached.** Please wait before analyzing another letter. (Max 5 per hour)"
+            )
+            st.info(
+                "This demo has usage limits to prevent API abuse. In production, authenticated users would have higher limits."
+            )
             st.stop()
 
         # Analysis section
@@ -832,11 +841,11 @@ def main():
                 st.session_state.generated_report = None
             if "analysis_results" in st.session_state:
                 st.session_state.analysis_results = None
-                
+
             # Update rate limiting counters
             st.session_state.last_analysis_time = current_time
             st.session_state.analysis_count += 1
-                
+
             if not letter_text:
                 st.warning("Please enter nexus letter text to analyze.")
                 return
