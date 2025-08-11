@@ -19,7 +19,7 @@ from contextlib import redirect_stdout, redirect_stderr
 import logging
 
 # Add src to path for imports
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 # Import production modules with fallback path handling
 try:
@@ -40,9 +40,9 @@ except ImportError as e:
     print(f"Python path: {sys.path}")
     print(f"Current working directory: {os.getcwd()}")
     print(f"Files in current directory: {os.listdir('.')}")
-    if os.path.exists('src'):
+    if os.path.exists("src"):
         print(f"Files in src: {os.listdir('src')}")
-        if os.path.exists('src/monitoring'):
+        if os.path.exists("src/monitoring"):
             print(f"Files in src/monitoring: {os.listdir('src/monitoring')}")
     raise
 
