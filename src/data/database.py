@@ -293,7 +293,7 @@ class AnalysisDatabase:
         scoring_results: Dict,
         recommendations: Dict,
         processing_time: float,
-    ) -> int:
+    ) -> Dict:
         """
         Save a complete analysis to the database.
 
@@ -305,7 +305,7 @@ class AnalysisDatabase:
             processing_time: Time taken to process
 
         Returns:
-            Analysis ID
+            Dictionary with analysis_id and metadata
         """
         try:
             # Generate letter hash for duplicate detection

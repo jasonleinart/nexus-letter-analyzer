@@ -24,10 +24,7 @@ import asyncio
 from contextlib import asynccontextmanager
 
 # Import our auth components
-try:
-    from .auth import key_manager, check_rate_limit, validate_permission
-except ImportError:
-    from auth import key_manager, check_rate_limit, validate_permission
+from api.auth import key_manager, check_rate_limit, validate_permission
 
 # Import our existing analysis components
 from models.ai_analyzer import create_analyzer
@@ -157,8 +154,14 @@ class BatchAnalysisRequest(BaseModel):
     """Request model for batch analysis."""
 
     letters: List[LetterAnalysisRequest] = Field(
-        ..., max_items=10, description="List of letters to analyze (max 10)"
+        ..., description="List of letters to analyze (max 10)"
     )
+
+    @validator("letters")
+    def validate_max_letters(cls, v):
+        if len(v) > 10:
+            raise ValueError("Maximum 10 letters allowed in batch analysis")
+        return v
 
 
 class AnalysisResponse(BaseModel):
