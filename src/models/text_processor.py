@@ -3,7 +3,7 @@
 import re
 import logging
 from typing import Tuple, Optional, Dict, Any, List
-from config import get_settings
+from src.utils.config import get_settings
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)

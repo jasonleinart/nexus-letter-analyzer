@@ -68,7 +68,7 @@ services:
     environment:
       - ENVIRONMENT=test
       - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - PYTHONPATH=/app
+      - PYTHONPATH=/app:/app/src
     volumes:
       - .:/app
       - ./test_logs:/app/test_logs
@@ -77,11 +77,11 @@ services:
     command: >
       sh -c "
         echo 'Running PHI Compliance Tests (CI)...' &&
-        python test_phi_compliance_ci.py &&
+        python tests/test_phi_compliance.py &&
         echo 'Running Error Handling Tests (CI)...' &&
-        python test_error_handling_ci.py &&
+        python tests/test_error_handling.py &&
         echo 'Running Observability Tests...' &&
-        python test_observability_comprehensive.py &&
+        python tests/test_observability.py &&
         echo 'All integration tests completed successfully!'
       "
     profiles:

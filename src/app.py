@@ -3,13 +3,16 @@
 import streamlit as st
 import time
 from typing import Dict, Any
-from ai_analyzer import create_analyzer, NexusLetterAnalyzer
-from text_processor import create_processor, TextProcessor
-from config import get_settings, validate_openai_key
-from scoring_engine import create_scorer, VAComplianceScorer
-from recommendation_engine import create_recommendation_engine, RecommendationEngine
-from database import create_database, AnalysisDatabase
-from analytics import display_analytics_dashboard
+from src.models.ai_analyzer import create_analyzer, NexusLetterAnalyzer
+from src.models.text_processor import create_processor, TextProcessor
+from src.utils.config import get_settings, validate_openai_key
+from src.models.scoring_engine import create_scorer, VAComplianceScorer
+from src.models.recommendation_engine import (
+    create_recommendation_engine,
+    RecommendationEngine,
+)
+from src.data.database import create_database, AnalysisDatabase
+from src.utils.analytics import display_analytics_dashboard
 
 
 def configure_page():
@@ -23,7 +26,7 @@ def configure_page():
 
     # Load professional CSS styling
     try:
-        with open("styles.css", "r") as f:
+        with open("assets/styles.css", "r") as f:
             st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
     except FileNotFoundError:
         # Fallback inline styles if CSS file not found
@@ -212,6 +215,7 @@ def display_analysis_results(
     scoring_results: Dict[str, Any],
     recommendations: Dict[str, Any],
     processing_time: float,
+    metadata: Dict[str, Any] = None,
 ):
     """
     Display the professional analysis results with enhanced visual presentation.
@@ -239,7 +243,7 @@ def display_analysis_results(
     display_component_analysis(scoring_results)
 
     # Key findings and recommendations in professional cards
-    display_findings_and_recommendations(analysis, recommendations)
+    display_findings_and_recommendations(analysis, recommendations, metadata)
 
     # Workflow guidance section
     display_workflow_guidance(workflow_rec)
@@ -392,7 +396,9 @@ def display_component_analysis(scoring_results: Dict[str, Any]):
 
 
 def display_findings_and_recommendations(
-    analysis: Dict[str, Any], recommendations: Dict[str, Any]
+    analysis: Dict[str, Any],
+    recommendations: Dict[str, Any],
+    metadata: Dict[str, Any] = None,
 ):
     """Display key findings and recommendations in professional cards."""
 
@@ -413,9 +419,30 @@ def display_findings_and_recommendations(
             for issue in analysis["critical_issues"]:
                 st.error(f"⚠ {issue}")
 
-        # Key details
-        if analysis.get("primary_condition") or analysis.get("probability_language"):
-            st.markdown("### 📋 Key Details")
+        # Key details with metadata
+        show_details = (
+            analysis.get("primary_condition")
+            or analysis.get("probability_language")
+            or (metadata and any(metadata.values()))
+        )
+
+        if show_details:
+            st.markdown("### 📋 Letter Information")
+
+            # Display stored metadata
+            if metadata:
+                if metadata.get("patient_anonymized"):
+                    st.info(f"**Patient:** {metadata['patient_anonymized']}")
+                elif metadata.get("patient_name"):
+                    st.info(f"**Patient:** {metadata['patient_name']}")
+
+                if metadata.get("doctor_name"):
+                    st.info(f"**Doctor:** {metadata['doctor_name']}")
+
+                if metadata.get("facility_name"):
+                    st.info(f"**Facility:** {metadata['facility_name']}")
+
+            # Display analysis details
             if analysis.get("primary_condition"):
                 st.info(f"**Primary Condition:** {analysis['primary_condition']}")
             if analysis.get("probability_language"):
@@ -795,8 +822,10 @@ def main():
     if not check_api_key_setup():
         st.stop()
 
-    # Create tabs for main interface and analytics
-    tab1, tab2 = st.tabs(["📝 Letter Analysis", "📈 Analytics Dashboard"])
+    # Create tabs for main interface, analytics, and history
+    tab1, tab2, tab3 = st.tabs(
+        ["📝 Letter Analysis", "📈 Analytics Dashboard", "📋 Analysis History"]
+    )
 
     with tab1:
         # Get user input
@@ -904,13 +933,15 @@ def main():
 
                     # Save to database
                     try:
-                        analysis_id = database.save_analysis(
+                        save_result = database.save_analysis(
                             letter_text,
                             ai_results["analysis"],
                             scoring_results,
                             recommendations,
                             processing_time,
                         )
+                        analysis_id = save_result["analysis_id"]
+                        metadata = save_result["metadata"]
                         st.success(
                             f"✅ Analysis completed successfully! (ID: {analysis_id})"
                         )
@@ -926,6 +957,7 @@ def main():
                         "scoring_results": scoring_results,
                         "recommendations": recommendations,
                         "processing_time": processing_time,
+                        "metadata": metadata if "metadata" in locals() else None,
                     }
 
                 except Exception as e:
@@ -940,6 +972,7 @@ def main():
                 results["scoring_results"],
                 results["recommendations"],
                 results["processing_time"],
+                results.get("metadata"),
             )
 
     with tab2:
@@ -951,6 +984,19 @@ def main():
             st.error(f"Analytics dashboard error: {str(e)}")
             st.markdown(
                 "Analytics dashboard is temporarily unavailable. The main analysis features are still functional."
+            )
+
+    with tab3:
+        # Analysis History & Database Records
+        try:
+            database = create_database()
+            from src.utils.analytics import display_analysis_history
+
+            display_analysis_history(database)
+        except Exception as e:
+            st.error(f"Analysis history error: {str(e)}")
+            st.markdown(
+                "Analysis history is temporarily unavailable. Please try refreshing the page."
             )
 
     # Footer (outside tabs)

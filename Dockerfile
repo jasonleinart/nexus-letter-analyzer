@@ -53,13 +53,13 @@ RUN mkdir -p /app/data /app/logs /app/test_logs && \
     chown -R appuser:appgroup /app/data /app/logs /app/test_logs
 
 # Make health check script executable
-RUN chmod +x health_check.py
+RUN chmod +x src/monitoring/health_check.py
 
 # Switch to non-root user
 USER appuser
 
 # Set environment variables
-ENV PYTHONPATH="/app:$PYTHONPATH"
+ENV PYTHONPATH="/app:/app/src:$PYTHONPATH"
 ENV STREAMLIT_SERVER_PORT=8501
 ENV STREAMLIT_SERVER_ADDRESS=0.0.0.0
 ENV STREAMLIT_SERVER_ENABLE_CORS=false
@@ -67,10 +67,10 @@ ENV STREAMLIT_SERVER_ENABLE_XSRF_PROTECTION=true
 
 # Health check using our custom script
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD python health_check.py || exit 1
+    CMD python src/monitoring/health_check.py || exit 1
 
 # Expose port
 EXPOSE 8501
 
 # Production command
-CMD ["streamlit", "run", "app.py", "--server.port=8501", "--server.address=0.0.0.0", "--server.enableCORS=false"]
+CMD ["streamlit", "run", "src/app.py", "--server.port=8501", "--server.address=0.0.0.0", "--server.enableCORS=false"]

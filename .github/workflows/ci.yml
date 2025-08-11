@@ -96,30 +96,30 @@ jobs:
       if: matrix.test-suite == 'phi-compliance'
       env:
         OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        PYTHONPATH: ${{ github.workspace }}
+        PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/src
       run: |
         echo "Running PHI Compliance Test Suite..."
-        python test_phi_compliance_ci.py > test_logs/phi-compliance-ci.log 2>&1
+        python tests/test_phi_compliance.py > test_logs/phi-compliance-ci.log 2>&1
         echo "PHI Compliance tests completed"
 
     - name: Run Error Handling Tests
       if: matrix.test-suite == 'error-handling'
       env:
         OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        PYTHONPATH: ${{ github.workspace }}
+        PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/src
       run: |
         echo "Running Error Handling Test Suite..."
-        python test_error_handling_ci.py > test_logs/error-handling-ci.log 2>&1
+        python tests/test_error_handling.py > test_logs/error-handling-ci.log 2>&1
         echo "Error handling tests completed"
 
     - name: Run Observability Tests
       if: matrix.test-suite == 'observability'
       env:
         OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        PYTHONPATH: ${{ github.workspace }}
+        PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/src
       run: |
         echo "Running Observability Test Suite..."
-        python test_observability_comprehensive.py > test_logs/observability-ci.log 2>&1
+        python tests/test_observability.py > test_logs/observability-ci.log 2>&1
         echo "Observability tests completed"
 
     - name: Upload test logs

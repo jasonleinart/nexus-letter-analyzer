@@ -3,7 +3,7 @@
 import logging
 from typing import Dict, List, Optional, Tuple
 from datetime import datetime, timedelta
-from database import AnalysisDatabase
+from src.data.database import AnalysisDatabase
 import streamlit as st
 
 # Configure logging
@@ -843,6 +843,495 @@ def get_demo_quality_metrics() -> Dict:
         "consistency_score": 89.1,
         "score_distribution": {"excellent": 104, "good": 98, "fair": 32, "poor": 13},
     }
+
+
+def _extract_patient_info(letter_preview: str) -> tuple:
+    """Safely extract patient and doctor information from letter preview."""
+    import re
+
+    patient_name = "Unknown Patient"
+    doctor_name = "Unknown Doctor"
+    facility = "Unknown Facility"
+
+    try:
+        # Extract patient name - multiple patterns
+        patient_patterns = [
+            # Standard nexus letter format
+            r"RE:.*?for\s+([A-Za-z\s\.]+?)(?:\n|DOB|SSN|\s*$)",
+            # Alternative format "on behalf of [Name]"
+            r"on behalf of\s+([A-Za-z\s\.]+?)(?:\s*\(|$)",
+            # Mr./Ms. format
+            r"(?:Mr\.|Ms\.|Mrs\.)\s+([A-Za-z\s\.]+?)(?:\s|$|\()",
+        ]
+
+        for pattern in patient_patterns:
+            re_match = re.search(pattern, letter_preview)
+            if re_match:
+                extracted = re_match.group(1).strip()
+                # Clean up common artifacts
+                extracted = re.sub(r"\s*\.\.\.$", "", extracted)  # Remove trailing ...
+                extracted = re.sub(r"\s+", " ", extracted)  # Normalize whitespace
+                if len(extracted) > 2:  # Must be reasonable name
+                    patient_name = extracted
+                    break
+
+        # Extract doctor name - enhanced patterns
+        doctor_patterns = [
+            # [Dr. Name] format
+            r"\[Dr\.\s+([A-Za-z\s\.]+?)\]",
+            # Dr. Name, M.D. format
+            r"Dr\.\s+([A-Za-z\s\.]+?)(?:,\s*M\.D\.|$|\n)",
+            # Name, M.D. format
+            r"([A-Za-z\s\.]+?),?\s+M\.D\.",
+            # Sincerely format
+            r"Sincerely,\s*([A-Za-z\s\.]+?)(?:\n|M\.D\.|$)",
+            # I am Dr. format
+            r"I am Dr\.\s+([A-Za-z\s\.]+?)(?:,|\n|$)",
+        ]
+
+        for pattern in doctor_patterns:
+            doc_match = re.search(pattern, letter_preview, re.MULTILINE)
+            if doc_match:
+                extracted = doc_match.group(1).strip()
+                # Clean up artifacts
+                extracted = re.sub(r"\s*\.\.\.$", "", extracted)
+                extracted = re.sub(r"\s+", " ", extracted)
+                if len(extracted) > 2:  # Must be reasonable name
+                    doctor_name = extracted
+                    break
+
+        # Extract facility - improved patterns
+        lines = letter_preview.split("\n")
+        for line in lines[:5]:  # Check first 5 lines
+            line = line.strip()
+            # Skip lines that are clearly not facility names
+            if (
+                line
+                and "Department" not in line
+                and "Phone" not in line
+                and "Email" not in line
+                and "Date:" not in line
+                and not line.startswith("[")
+                and len(line) > 5
+            ):
+
+                # Look for medical facility indicators
+                if any(
+                    word in line.lower()
+                    for word in ["medical", "center", "hospital", "clinic", "plaza"]
+                ):
+                    facility = line
+                    break
+                # If no medical keywords, check if it looks like a facility name
+                elif len(line) > 10 and not any(char in line for char in "()[]@"):
+                    facility = line
+                    break
+
+    except Exception as e:
+        # If extraction fails, use defaults
+        pass
+
+    return patient_name, doctor_name, facility
+
+
+def _anonymize_patient_name(name: str, show_full: bool = False) -> str:
+    """Convert patient name to initials or show full name based on privacy setting."""
+    if show_full or name == "Unknown Patient":
+        return name
+
+    try:
+        parts = name.strip().split()
+        if len(parts) >= 2:
+            # First name initial + Last name initial
+            return f"{parts[0][0]}. {parts[-1][0]}."
+        else:
+            return f"{name[0]}." if name else "U.P."
+    except:
+        return "U.P."  # Unknown Patient
+
+
+def display_analysis_history(database: AnalysisDatabase):
+    """Display analysis history in a compact, searchable table format."""
+    st.markdown("## 📋 Analysis History & Database Records")
+    st.markdown("*Complete record of all nexus letter analyses*")
+
+    # Privacy toggle
+    col1, col2, col3 = st.columns([2, 1, 1])
+    with col1:
+        show_full_names = st.checkbox(
+            "🔓 Show Full Patient Names (PHI Sensitive)",
+            value=False,
+            help="Toggle to show full patient names vs initials for privacy protection",
+        )
+    with col2:
+        if st.button("🔄 Refresh Data"):
+            st.rerun()
+
+    # Get all analyses from database
+    try:
+        with database._get_connection() as conn:
+            cursor = conn.cursor()
+
+            rows = cursor.execute(
+                """
+                SELECT id, created_at, letter_preview, overall_score, nexus_strength, 
+                       workflow_decision, medical_opinion_score, service_connection_score,
+                       medical_rationale_score, professional_format_score,
+                       processing_time_seconds, critical_issues_count, improvement_count,
+                       patient_name, patient_anonymized, doctor_name, facility_name,
+                       ai_response_json, scoring_details_json, recommendations_json
+                FROM analyses 
+                ORDER BY created_at DESC
+            """
+            ).fetchall()
+
+            # Convert sqlite3.Row objects to dictionaries
+            analyses = []
+            for row in rows:
+                analysis_dict = dict(row)
+                analyses.append(analysis_dict)
+
+            if not analyses:
+                st.info(
+                    "No analysis history found. Perform analyses to see detailed records here."
+                )
+                return
+
+            # Summary stats (compact)
+            st.markdown("### 📊 Summary")
+            col1, col2, col3, col4 = st.columns(4)
+
+            total = len(analyses)
+            avg_score = sum(a["overall_score"] for a in analyses) / total
+            avg_time = sum(a["processing_time_seconds"] for a in analyses) / total
+
+            with col1:
+                st.metric("Total", total)
+            with col2:
+                st.metric("Avg Score", f"{avg_score:.0f}/100")
+            with col3:
+                st.metric("Avg Time", f"{avg_time:.1f}s")
+            with col4:
+                high_scores = sum(1 for a in analyses if a["overall_score"] >= 85)
+                st.metric("High Quality", f"{high_scores}/{total}")
+
+            st.markdown("---")
+            st.markdown("### 📋 Analysis Records")
+
+            # Initialize session state for selected analysis if not exists
+            if "selected_analysis_id" not in st.session_state:
+                st.session_state.selected_analysis_id = None
+            if "show_analysis_details" not in st.session_state:
+                st.session_state.show_analysis_details = False
+
+            # Clear any old session data that might have Row objects
+            if hasattr(st.session_state, "selected_analysis_data"):
+                # If the stored data is a Row object, clear it to force refresh
+                if hasattr(
+                    st.session_state.selected_analysis_data, "__class__"
+                ) and "Row" in str(st.session_state.selected_analysis_data.__class__):
+                    st.session_state.selected_analysis_data = None
+                    st.session_state.show_analysis_details = False
+
+            # Create custom table with View Details buttons
+            for i, analysis in enumerate(analyses):
+                # Helper function to safely get values from analysis (handles both dict and Row objects)
+                def safe_get(obj, key, default=None):
+                    if hasattr(obj, "get"):
+                        return obj.get(key, default)
+                    else:
+                        return getattr(obj, key, default)
+
+                # Use stored metadata instead of extracting from preview
+                patient_display = (
+                    analysis["patient_name"]
+                    if show_full_names and safe_get(analysis, "patient_name")
+                    else safe_get(analysis, "patient_anonymized") or "Unknown Patient"
+                )
+
+                doctor_display = safe_get(analysis, "doctor_name") or "Unknown Doctor"
+                if len(doctor_display) > 20:
+                    doctor_display = doctor_display[:20] + "..."
+
+                facility_display = (
+                    safe_get(analysis, "facility_name") or "Unknown Facility"
+                )
+                if len(facility_display) > 25:
+                    facility_display = facility_display[:25] + "..."
+
+                # Create row container with styling
+                row_style = """
+                <style>
+                .analysis-row {
+                    background: white;
+                    border: 1px solid #e1e5e9;
+                    border-radius: 0.5rem;
+                    padding: 1rem;
+                    margin: 0.5rem 0;
+                    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+                    transition: all 0.2s;
+                }
+                .analysis-row:hover {
+                    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+                    border-color: #3b82f6;
+                }
+                .row-header {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    margin-bottom: 0.5rem;
+                }
+                .row-data {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+                    gap: 1rem;
+                    font-size: 0.9rem;
+                }
+                .data-item {
+                    display: flex;
+                    flex-direction: column;
+                }
+                .data-label {
+                    font-weight: 600;
+                    color: #374151;
+                    font-size: 0.8rem;
+                }
+                .data-value {
+                    color: #6b7280;
+                }
+                .score-badge {
+                    display: inline-block;
+                    padding: 0.25rem 0.75rem;
+                    border-radius: 1rem;
+                    font-weight: 600;
+                    font-size: 0.875rem;
+                }
+                .score-high { background: #d1fae5; color: #065f46; }
+                .score-med { background: #fef3c7; color: #92400e; }
+                .score-low { background: #fee2e2; color: #991b1b; }
+                </style>
+                """
+
+                # Determine score styling
+                score = analysis["overall_score"]
+                if score >= 85:
+                    score_class = "score-high"
+                elif score >= 70:
+                    score_class = "score-med"
+                else:
+                    score_class = "score-low"
+
+                st.markdown(row_style, unsafe_allow_html=True)
+
+                with st.container():
+                    st.markdown(
+                        f"""
+                    <div class="analysis-row">
+                        <div class="row-header">
+                            <h4 style="margin: 0; color: #1f2937;">Analysis #{analysis["id"]}</h4>
+                            <span class="score-badge {score_class}">{score}/100</span>
+                        </div>
+                        <div class="row-data">
+                            <div class="data-item">
+                                <span class="data-label">Patient</span>
+                                <span class="data-value">{patient_display}</span>
+                            </div>
+                            <div class="data-item">
+                                <span class="data-label">Doctor</span>
+                                <span class="data-value">{doctor_display}</span>
+                            </div>
+                            <div class="data-item">
+                                <span class="data-label">Facility</span>
+                                <span class="data-value">{facility_display}</span>
+                            </div>
+                            <div class="data-item">
+                                <span class="data-label">Nexus Strength</span>
+                                <span class="data-value">{analysis["nexus_strength"] or "Unknown"}</span>
+                            </div>
+                            <div class="data-item">
+                                <span class="data-label">Decision</span>
+                                <span class="data-value">{analysis["workflow_decision"].replace("_", " ").title() if analysis["workflow_decision"] else "Unknown"}</span>
+                            </div>
+                            <div class="data-item">
+                                <span class="data-label">Date</span>
+                                <span class="data-value">{analysis["created_at"][:10]}</span>
+                            </div>
+                            <div class="data-item">
+                                <span class="data-label">Processing Time</span>
+                                <span class="data-value">{analysis["processing_time_seconds"]:.1f}s</span>
+                            </div>
+                        </div>
+                    </div>
+                    """,
+                        unsafe_allow_html=True,
+                    )
+
+                    # View Details button for each row
+                    col1, col2, col3 = st.columns([1, 2, 1])
+                    with col2:
+                        if st.button(
+                            f"🔍 View Details",
+                            key=f"details_{analysis['id']}",
+                            use_container_width=True,
+                        ):
+                            st.session_state.selected_analysis_id = analysis["id"]
+                            st.session_state.show_analysis_details = True
+                            st.session_state.selected_analysis_data = analysis
+                            st.rerun()
+
+                    # Add some spacing
+                    st.markdown(
+                        "<div style='height: 0.5rem;'></div>", unsafe_allow_html=True
+                    )
+
+            # Show detailed analysis if one is selected
+            if (
+                st.session_state.show_analysis_details
+                and st.session_state.selected_analysis_id
+            ):
+                st.markdown("---")
+                st.markdown("### 🔍 Detailed Analysis View")
+
+                selected_analysis = st.session_state.selected_analysis_data
+
+                # Helper function to safely get values (handles both dict and Row objects)
+                def safe_get_detail(obj, key, default=None):
+                    if hasattr(obj, "get"):
+                        return obj.get(key, default)
+                    else:
+                        return getattr(obj, key, default)
+
+                # Add close button
+                col1, col2, col3 = st.columns([1, 2, 1])
+                with col3:
+                    if st.button("✖ Close Details", key="close_details"):
+                        st.session_state.show_analysis_details = False
+                        st.session_state.selected_analysis_id = None
+                        st.rerun()
+
+                # Display detailed view
+                with st.container():
+                    st.markdown(
+                        f"#### 📄 Analysis #{st.session_state.selected_analysis_id} - Detailed View"
+                    )
+
+                    # Metadata columns
+                    col1, col2, col3 = st.columns(3)
+                    with col1:
+                        st.markdown("**Patient Info:**")
+                        if show_full_names and safe_get_detail(
+                            selected_analysis, "patient_name"
+                        ):
+                            st.write(f"Name: {selected_analysis['patient_name']}")
+                        else:
+                            st.write(
+                                f"Patient: {safe_get_detail(selected_analysis, 'patient_anonymized') or 'Unknown'}"
+                            )
+                        st.write(f"ID: {selected_analysis['id']}")
+                        st.write(f"Date: {selected_analysis['created_at']}")
+                        st.write(
+                            f"Processing: {selected_analysis['processing_time_seconds']:.2f}s"
+                        )
+
+                    with col2:
+                        st.markdown("**Provider Info:**")
+                        st.write(
+                            f"Doctor: {safe_get_detail(selected_analysis, 'doctor_name') or 'Unknown'}"
+                        )
+                        st.write(
+                            f"Facility: {safe_get_detail(selected_analysis, 'facility_name') or 'Unknown'}"
+                        )
+                        st.write(
+                            f"Overall Score: {selected_analysis['overall_score']}/100"
+                        )
+                        st.write(
+                            f"Nexus: {safe_get_detail(selected_analysis, 'nexus_strength') or 'Unknown'}"
+                        )
+
+                    with col3:
+                        st.markdown("**Analysis Results:**")
+                        decision = safe_get_detail(
+                            selected_analysis, "workflow_decision", "Unknown"
+                        )
+                        st.write(f"Decision: {decision.replace('_', ' ').title()}")
+                        st.write(
+                            f"Critical Issues: {safe_get_detail(selected_analysis, 'critical_issues_count', 0)}"
+                        )
+                        st.write(
+                            f"Improvements: {safe_get_detail(selected_analysis, 'improvement_count', 0)}"
+                        )
+
+                    # Component scores
+                    st.markdown("**Component Breakdown:**")
+                    score_cols = st.columns(4)
+                    components = [
+                        ("Medical Opinion", selected_analysis["medical_opinion_score"]),
+                        (
+                            "Service Connection",
+                            selected_analysis["service_connection_score"],
+                        ),
+                        (
+                            "Medical Rationale",
+                            selected_analysis["medical_rationale_score"],
+                        ),
+                        (
+                            "Professional Format",
+                            selected_analysis["professional_format_score"],
+                        ),
+                    ]
+
+                    for i, (name, score) in enumerate(components):
+                        with score_cols[i]:
+                            st.metric(name, f"{score}/25")
+
+                    # Letter preview
+                    st.markdown("**Letter Preview:**")
+                    st.text_area(
+                        "First 200 characters:",
+                        selected_analysis["letter_preview"],
+                        height=120,
+                        key=f"detail_preview_{st.session_state.selected_analysis_id}",
+                        disabled=True,
+                    )
+
+                    # Technical details in tabs
+                    with st.expander("🔧 Technical Details & Raw Data"):
+                        tech_tab1, tech_tab2, tech_tab3 = st.tabs(
+                            ["AI Response", "Scoring Details", "Recommendations"]
+                        )
+
+                        with tech_tab1:
+                            try:
+                                import json
+
+                                ai_data = json.loads(
+                                    selected_analysis["ai_response_json"]
+                                )
+                                st.json(ai_data)
+                            except:
+                                st.code(selected_analysis["ai_response_json"])
+
+                        with tech_tab2:
+                            try:
+                                scoring_data = json.loads(
+                                    selected_analysis["scoring_details_json"]
+                                )
+                                st.json(scoring_data)
+                            except:
+                                st.code(selected_analysis["scoring_details_json"])
+
+                        with tech_tab3:
+                            try:
+                                rec_data = json.loads(
+                                    selected_analysis["recommendations_json"]
+                                )
+                                st.json(rec_data)
+                            except:
+                                st.code(selected_analysis["recommendations_json"])
+
+    except Exception as e:
+        st.error(f"Failed to load analysis history: {str(e)}")
+        logger.error(f"Analysis history error: {str(e)}")
 
 
 def calculate_payback_period(roi_metrics: Dict) -> float:

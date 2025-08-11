@@ -33,6 +33,7 @@ class AnalysisDatabase:
         try:
             with self._get_connection() as conn:
                 self._create_tables(conn)
+                self._migrate_schema(conn)
                 logger.info(f"Database initialized at {self.db_path}")
         except Exception as e:
             logger.error(f"Database initialization failed: {str(e)}")
@@ -74,7 +75,11 @@ class AnalysisDatabase:
             nexus_strength TEXT,
             primary_condition TEXT,
             critical_issues_count INTEGER DEFAULT 0,
-            improvement_count INTEGER DEFAULT 0
+            improvement_count INTEGER DEFAULT 0,
+            patient_name TEXT,
+            patient_anonymized TEXT,
+            doctor_name TEXT,
+            facility_name TEXT
         )"""
 
         # Component scores table for detailed tracking
@@ -143,6 +148,144 @@ class AnalysisDatabase:
 
         conn.commit()
 
+    def _migrate_schema(self, conn: sqlite3.Connection):
+        """Migrate database schema for existing installations."""
+        cursor = conn.cursor()
+
+        # Check if new columns exist
+        columns = cursor.execute("PRAGMA table_info(analyses)").fetchall()
+        existing_columns = [col[1] for col in columns]
+
+        # Add new metadata columns if they don't exist
+        new_columns = [
+            "patient_name TEXT",
+            "patient_anonymized TEXT",
+            "doctor_name TEXT",
+            "facility_name TEXT",
+        ]
+
+        for col_def in new_columns:
+            col_name = col_def.split()[0]
+            if col_name not in existing_columns:
+                try:
+                    cursor.execute(f"ALTER TABLE analyses ADD COLUMN {col_def}")
+                    logger.info(f"Added column {col_name} to analyses table")
+                except Exception as e:
+                    logger.warning(f"Could not add column {col_name}: {str(e)}")
+
+        conn.commit()
+
+    def _extract_metadata(self, letter_text: str) -> tuple:
+        """Extract patient, doctor, and facility information from letter text."""
+        import re
+
+        patient_name = None
+        doctor_name = None
+        facility_name = None
+
+        try:
+            # Extract patient name - multiple patterns
+            patient_patterns = [
+                # Standard nexus letter format
+                r"RE:.*?for\s+([A-Za-z\s\.]+?)(?:\n|DOB|SSN|\s*$)",
+                # Alternative format "on behalf of [Name]"
+                r"on behalf of\s+([A-Za-z\s\.]+?)(?:\s*\(|DOB|$)",
+                # Mr./Ms. format
+                r"(?:Mr\.|Ms\.|Mrs\.)\s+([A-Za-z\s\.]+?)(?:\s|$|\()",
+            ]
+
+            for pattern in patient_patterns:
+                re_match = re.search(pattern, letter_text, re.IGNORECASE)
+                if re_match:
+                    extracted = re_match.group(1).strip()
+                    # Clean up common artifacts
+                    extracted = re.sub(r"\s*\.\.\.$", "", extracted)
+                    extracted = re.sub(r"\s+", " ", extracted)
+                    if len(extracted) > 2 and not extracted.lower() in [
+                        "patient",
+                        "veteran",
+                        "individual",
+                    ]:
+                        patient_name = extracted
+                        break
+
+            # Extract doctor name - enhanced patterns
+            doctor_patterns = [
+                # [Dr. Name] format
+                r"\[Dr\.\s+([A-Za-z\s\.]+?)\]",
+                # Dr. Name, M.D. format
+                r"Dr\.\s+([A-Za-z\s\.]+?)(?:,\s*M\.D\.|$|\n)",
+                # Name, M.D. format
+                r"([A-Za-z\s\.]+?),?\s+M\.D\.",
+                # Sincerely format
+                r"Sincerely,\s*([A-Za-z\s\.]+?)(?:\n|M\.D\.|$)",
+                # I am Dr. format
+                r"I am Dr\.\s+([A-Za-z\s\.]+?)(?:,|\n|$)",
+            ]
+
+            for pattern in doctor_patterns:
+                doc_match = re.search(
+                    pattern, letter_text, re.MULTILINE | re.IGNORECASE
+                )
+                if doc_match:
+                    extracted = doc_match.group(1).strip()
+                    # Clean up artifacts
+                    extracted = re.sub(r"\s*\.\.\.$", "", extracted)
+                    extracted = re.sub(r"\s+", " ", extracted)
+                    if len(extracted) > 2:
+                        # If pattern didn't include Dr., add it back for consistency
+                        if not extracted.startswith(("Dr.", "Doctor")):
+                            extracted = f"Dr. {extracted}"
+                        doctor_name = extracted
+                        break
+
+            # Extract facility - improved patterns
+            lines = letter_text.split("\n")
+            for line in lines[:5]:  # Check first 5 lines
+                line = line.strip()
+                # Skip lines that are clearly not facility names
+                if (
+                    line
+                    and "Department" not in line
+                    and "Phone" not in line
+                    and "Email" not in line
+                    and "Date:" not in line
+                    and not line.startswith("[")
+                    and len(line) > 5
+                ):
+
+                    # Look for medical facility indicators
+                    if any(
+                        word in line.lower()
+                        for word in ["medical", "center", "hospital", "clinic", "plaza"]
+                    ):
+                        facility_name = line
+                        break
+                    # If no medical keywords, check if it looks like a facility name
+                    elif len(line) > 10 and not any(char in line for char in "()[]@"):
+                        facility_name = line
+                        break
+
+        except Exception as e:
+            logger.warning(f"Error extracting metadata: {str(e)}")
+
+        return patient_name, doctor_name, facility_name
+
+    def _anonymize_name(self, name: str) -> str:
+        """Convert patient name to initials for privacy protection."""
+        if not name:
+            return None
+
+        try:
+            parts = name.strip().split()
+            if len(parts) >= 2:
+                # First name initial + Last name initial
+                return f"{parts[0][0]}. {parts[-1][0]}."
+            else:
+                return f"{name[0]}." if name else None
+        except:
+            return None
+
     def save_analysis(
         self,
         letter_text: str,
@@ -171,6 +314,14 @@ class AnalysisDatabase:
             # Create letter preview (first 200 chars)
             letter_preview = (
                 letter_text[:200] + "..." if len(letter_text) > 200 else letter_text
+            )
+
+            # Extract metadata once during save
+            patient_name, doctor_name, facility_name = self._extract_metadata(
+                letter_text
+            )
+            patient_anonymized = (
+                self._anonymize_name(patient_name) if patient_name else None
             )
 
             # Extract key fields
@@ -221,7 +372,15 @@ class AnalysisDatabase:
                     logger.info(
                         f"Analysis already exists for this letter (ID: {existing['id']})"
                     )
-                    return existing["id"]
+                    return {
+                        "analysis_id": existing["id"],
+                        "metadata": {
+                            "patient_name": patient_name,
+                            "patient_anonymized": patient_anonymized,
+                            "doctor_name": doctor_name,
+                            "facility_name": facility_name,
+                        },
+                    }
 
                 # Insert new analysis
                 cursor.execute(
@@ -232,8 +391,9 @@ class AnalysisDatabase:
                         medical_rationale_score, professional_format_score,
                         ai_response_json, scoring_details_json, recommendations_json,
                         processing_time_seconds, nexus_strength, primary_condition,
-                        critical_issues_count, improvement_count
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        critical_issues_count, improvement_count,
+                        patient_name, patient_anonymized, doctor_name, facility_name
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                     (
                         letter_hash,
@@ -257,6 +417,10 @@ class AnalysisDatabase:
                         ai_analysis.get("primary_condition", "Unknown"),
                         critical_issues,
                         len(improvements),
+                        patient_name,
+                        patient_anonymized,
+                        doctor_name,
+                        facility_name,
                     ),
                 )
 
@@ -274,7 +438,15 @@ class AnalysisDatabase:
                 conn.commit()
                 logger.info(f"Analysis saved successfully (ID: {analysis_id})")
 
-                return analysis_id
+                return {
+                    "analysis_id": analysis_id,
+                    "metadata": {
+                        "patient_name": patient_name,
+                        "patient_anonymized": patient_anonymized,
+                        "doctor_name": doctor_name,
+                        "facility_name": facility_name,
+                    },
+                }
 
         except Exception as e:
             logger.error(f"Failed to save analysis: {str(e)}")

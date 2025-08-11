@@ -12,7 +12,7 @@ import time
 project_root = Path(__file__).parent
 sys.path.insert(0, str(project_root))
 
-from analytics import (
+from src.utils.analytics import (
     get_demo_analytics_data,
     get_demo_roi_metrics,
     get_demo_quality_metrics,

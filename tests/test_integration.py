@@ -16,21 +16,21 @@ from typing import Dict, Any, List
 from unittest.mock import patch, Mock
 
 # Import production modules and core components
-from phi_compliance import create_phi_detector, phi_compliant_processing
-from error_handling import (
+from src.security.phi_compliance import create_phi_detector, phi_compliant_processing
+from src.monitoring.error_handling import (
     CircuitBreakerConfig,
     CircuitBreaker,
     with_error_handling,
     RetryConfig,
 )
-from observability import observability_context
+from src.monitoring.observability import observability_context
 
 # Import core application components
 try:
-    from ai_analyzer import create_analyzer
-    from text_processor import create_processor
-    from scoring_engine import create_scorer
-    from database import create_database
+    from src.models.ai_analyzer import create_analyzer
+    from src.models.text_processor import create_processor
+    from src.models.scoring_engine import create_scorer
+    from src.data.database import create_database
 
     CORE_COMPONENTS_AVAILABLE = True
 except ImportError as e:

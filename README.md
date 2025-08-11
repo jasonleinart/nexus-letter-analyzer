@@ -73,7 +73,7 @@ The Nexus Letter AI Analyzer helps disability law firms quickly assess the quali
 
 5. **Launch application**
    ```bash
-   streamlit run app.py
+   streamlit run src/app.py
    ```
 
 6. **Open in browser**
@@ -153,7 +153,7 @@ The application includes sample letters for testing:
 - **Moderate Letter**: Basic letter with some gaps
 - **Weak Letter**: Poor letter with multiple issues
 
-Access samples via `sample_letters.py` for testing and demonstration.
+Access samples via `src/data/sample_letters.py` for testing and demonstration.
 
 ## Production Features (Milestone 4)
 
@@ -191,53 +191,53 @@ Access samples via `sample_letters.py` for testing and demonstration.
 
 ### Components
 
-**Configuration Management (`config.py`)**
+**Configuration Management (`src/utils/config.py`)**
 - Environment variable handling
 - API key validation
 - Application settings
 
-**AI Analysis Engine (`ai_analyzer.py`)**
+**AI Analysis Engine (`src/models/ai_analyzer.py`)**
 - OpenAI GPT-4 integration with error handling
 - Structured prompt engineering
 - Response parsing and validation
 - Circuit breaker pattern implementation
 
-**Text Processing Pipeline (`text_processor.py`)**
+**Text Processing Pipeline (`src/models/text_processor.py`)**
 - Text cleaning and normalization
 - Input validation and preprocessing
 - Letter component extraction
 
-**Database Layer (`database.py`)**
+**Database Layer (`src/data/database.py`)**
 - SQLite integration with analytics
 - Analysis result storage and retrieval
 - Performance metrics tracking
 
-**Scoring Engine (`scoring_engine.py`)**
+**Scoring Engine (`src/models/scoring_engine.py`)**
 - VA compliance scoring algorithms
 - Component-based evaluation
 - Recommendation generation
 
-**Error Handling (`error_handling.py`)**
+**Error Handling (`src/monitoring/error_handling.py`)**
 - Circuit breaker implementations
 - Retry logic with exponential backoff
 - Structured error classification
 
-**Observability (`observability.py`)**
+**Observability (`src/monitoring/observability.py`)**
 - Structured JSON logging
 - Performance metrics collection
 - Request correlation tracking
 
-**PHI Compliance (`phi_compliance.py`)**
+**PHI Compliance (`src/security/phi_compliance.py`)**
 - Protected health information detection
 - Data redaction and secure handling
 - Audit trail management
 
-**Analytics Dashboard (`analytics.py`)**
+**Analytics Dashboard (`src/utils/analytics.py`)**
 - Business intelligence calculations
 - ROI and productivity metrics
 - System performance analytics
 
-**Web Interface (`app.py`)**
+**Web Interface (`src/app.py`)**
 - Streamlit-based professional UI
 - Real-time validation and feedback
 - Results display and export
@@ -267,39 +267,56 @@ The application uses OpenAI's GPT-4 model with:
 ### Project Structure
 ```
 nexus-letter-analyzer/
-├── app.py                           # Main Streamlit application
-├── ai_analyzer.py                   # OpenAI integration with error handling
-├── text_processor.py                # Text processing pipeline
-├── config.py                       # Configuration management
-├── database.py                     # SQLite integration and analytics
-├── scoring_engine.py               # VA compliance scoring
-├── recommendation_engine.py        # Improvement recommendations
-├── error_handling.py               # Circuit breakers and retry logic
-├── observability.py                # Logging and performance monitoring
-├── phi_compliance.py               # PHI detection and compliance
-├── analytics.py                    # Business intelligence dashboard
-├── sample_letters.py               # Test data and samples
-├── health_check.py                 # System health monitoring
+├── src/                            # Source code (organized by function)
+│   ├── app.py                      # Main Streamlit application
+│   ├── models/                     # Core business logic
+│   │   ├── ai_analyzer.py          # OpenAI integration with error handling
+│   │   ├── text_processor.py       # Text processing pipeline
+│   │   ├── scoring_engine.py       # VA compliance scoring
+│   │   └── recommendation_engine.py # Improvement recommendations
+│   ├── data/                       # Data layer
+│   │   ├── database.py             # SQLite integration and analytics
+│   │   └── sample_letters.py       # Test data and samples
+│   ├── security/                   # Security & compliance
+│   │   ├── phi_compliance.py       # PHI detection and compliance
+│   │   ├── security_config.py      # Security configuration
+│   │   └── advanced_security.py    # Advanced security features
+│   ├── monitoring/                 # Observability & reliability
+│   │   ├── error_handling.py       # Circuit breakers and retry logic
+│   │   ├── observability.py        # Logging and performance monitoring
+│   │   └── health_check.py         # System health monitoring
+│   └── utils/                      # Utilities & configuration
+│       ├── config.py               # Configuration management
+│       └── analytics.py            # Business intelligence dashboard
+├── tests/                          # Test suite
+│   ├── test_integration.py         # Integration tests
+│   ├── test_phi_compliance.py      # PHI compliance tests
+│   ├── test_error_handling.py      # Error handling tests
+│   ├── test_observability.py       # Observability tests
+│   └── test_analytics.py           # Analytics tests
+├── docs/                           # Documentation
+│   ├── milestones/                 # Development milestone history
+│   ├── DEMO.md                     # Demonstration script
+│   ├── DEPLOYMENT.md               # Deployment guide
+│   └── SECURITY.md                 # Security documentation
+├── assets/                         # Static assets
+│   └── styles.css                  # Professional styling
 ├── Dockerfile                      # Docker containerization
 ├── docker-compose.yml              # Multi-environment deployment
 ├── requirements.txt                # Python dependencies
 ├── .github/workflows/ci.yml        # CI/CD pipeline
-├── test_*.py                       # Comprehensive test suites
-├── milestone-*/                    # Development milestone documentation
-├── docs/                          # Architecture and compliance docs
-├── test_logs/                     # Test execution logs
-├── .env.example                   # Environment configuration template
-├── README.md                      # This file
-├── DEMO.md                        # Demonstration script
-└── CLAUDE.md                      # Project memory and conventions
+├── test_logs/                      # Test execution logs
+├── .env.example                    # Environment configuration template
+├── README.md                       # This file
+└── CLAUDE.md                       # Project memory and conventions
 ```
 
 ### Customization Options
 
-**Analysis Criteria**: Modify prompts in `ai_analyzer.py` to adjust evaluation criteria
-**UI Layout**: Update `app.py` for interface customization
-**Text Processing**: Extend `text_processor.py` for additional preprocessing
-**Configuration**: Add settings in `config.py` for new features
+**Analysis Criteria**: Modify prompts in `src/models/ai_analyzer.py` to adjust evaluation criteria
+**UI Layout**: Update `src/app.py` for interface customization
+**Text Processing**: Extend `src/models/text_processor.py` for additional preprocessing
+**Configuration**: Add settings in `src/utils/config.py` for new features
 
 ### Testing
 
@@ -309,9 +326,9 @@ nexus-letter-analyzer/
 pytest -v
 
 # Run specific test suites
-python test_error_handling_ci.py      # Error handling tests
-python test_phi_compliance_ci.py      # PHI compliance tests  
-python test_observability_comprehensive.py  # Observability tests
+python tests/test_error_handling.py      # Error handling tests
+python tests/test_phi_compliance.py      # PHI compliance tests  
+python tests/test_observability.py       # Observability tests
 
 # Run tests in Docker
 docker compose --profile test run --rm nexus-test-runner
@@ -326,10 +343,10 @@ docker compose --profile test run --rm nexus-test-runner
 
 **Manual Testing**:
 ```bash
-# Test individual components
-python ai_analyzer.py    # Test API connection
-python text_processor.py # Test text processing
-python health_check.py   # System health check
+# Test individual components  
+PYTHONPATH=.:src python src/models/ai_analyzer.py      # Test API connection
+PYTHONPATH=.:src python src/models/text_processor.py   # Test text processing
+PYTHONPATH=.:src python src/monitoring/health_check.py # System health check
 ```
 
 **Integration Testing**:
