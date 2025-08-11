@@ -100,7 +100,13 @@ jobs:
       run: |
         echo "Running PHI Compliance Test Suite..."
         python tests/test_phi_compliance.py > test_logs/phi-compliance-ci.log 2>&1
+        TEST_EXIT_CODE=$?
+        if [ $TEST_EXIT_CODE -ne 0 ]; then
+          echo "=== PHI Compliance test failed, showing log contents ==="
+          cat test_logs/phi-compliance-ci.log
+        fi
         echo "PHI Compliance tests completed"
+        exit $TEST_EXIT_CODE
 
     - name: Run Error Handling Tests
       if: matrix.test-suite == 'error-handling'
@@ -110,7 +116,13 @@ jobs:
       run: |
         echo "Running Error Handling Test Suite..."
         python tests/test_error_handling.py > test_logs/error-handling-ci.log 2>&1
+        TEST_EXIT_CODE=$?
+        if [ $TEST_EXIT_CODE -ne 0 ]; then
+          echo "=== Error Handling test failed, showing log contents ==="
+          cat test_logs/error-handling-ci.log
+        fi
         echo "Error handling tests completed"
+        exit $TEST_EXIT_CODE
 
     - name: Run Observability Tests
       if: matrix.test-suite == 'observability'
@@ -119,8 +131,19 @@ jobs:
         PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/src
       run: |
         echo "Running Observability Test Suite..."
+        echo "Current directory: $(pwd)"
+        echo "PYTHONPATH: $PYTHONPATH"
+        echo "Python path: $(which python)"
+        ls -la src/monitoring/ || echo "monitoring directory not found"
         python tests/test_observability.py > test_logs/observability-ci.log 2>&1
+        TEST_EXIT_CODE=$?
+        echo "Test exit code: $TEST_EXIT_CODE"
+        if [ $TEST_EXIT_CODE -ne 0 ]; then
+          echo "=== Test failed, showing log contents ==="
+          cat test_logs/observability-ci.log
+        fi
         echo "Observability tests completed"
+        exit $TEST_EXIT_CODE
 
     - name: Upload test logs
       uses: actions/upload-artifact@v4
