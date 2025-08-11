@@ -7,6 +7,7 @@ and monitoring capabilities for production operations.
 """
 
 import sys
+import os
 import time
 import json
 import uuid
@@ -17,19 +18,33 @@ from io import StringIO
 from contextlib import redirect_stdout, redirect_stderr
 import logging
 
-# Import production modules
-from observability import (
-    StructuredLogger,
-    MetricsCollector,
-    PerformanceMonitor,
-    observability_context,
-    with_observability,
-    LogLevel,
-    MetricType,
-    create_structured_logger,
-    create_metrics_collector,
-    create_performance_monitor,
-)
+# Add src to path for imports
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
+
+# Import production modules with fallback path handling
+try:
+    from monitoring.observability import (
+        StructuredLogger,
+        MetricsCollector,
+        PerformanceMonitor,
+        observability_context,
+        with_observability,
+        LogLevel,
+        MetricType,
+        create_structured_logger,
+        create_metrics_collector,
+        create_performance_monitor,
+    )
+except ImportError as e:
+    print(f"Import error: {e}")
+    print(f"Python path: {sys.path}")
+    print(f"Current working directory: {os.getcwd()}")
+    print(f"Files in current directory: {os.listdir('.')}")
+    if os.path.exists('src'):
+        print(f"Files in src: {os.listdir('src')}")
+        if os.path.exists('src/monitoring'):
+            print(f"Files in src/monitoring: {os.listdir('src/monitoring')}")
+    raise
 
 
 class ObservabilityTestSuite:
@@ -283,6 +298,8 @@ class ObservabilityTestSuite:
     def test_health_monitoring_and_alerting(self):
         """Test health monitoring and alerting thresholds."""
         logger = create_structured_logger("health_test")
+        # Reduce logging noise during testing
+        logger.logger.setLevel(logging.WARNING)  # Only log warnings and errors
         metrics = create_metrics_collector()
         monitor = PerformanceMonitor(metrics, logger)
 
@@ -573,6 +590,7 @@ class ObservabilityTestSuite:
             # Manual instrumentation to avoid decorator overhead in measurement
             correlation_id = str(uuid.uuid4())
             logger = create_structured_logger("performance_test")
+            logger.logger.setLevel(logging.WARNING)  # Reduce noise
             metrics = create_metrics_collector()
             monitor = PerformanceMonitor(metrics, logger)
 
