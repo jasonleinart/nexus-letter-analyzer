@@ -3,10 +3,10 @@
 import streamlit as st
 import time
 from typing import Dict, Any
-from src.models.ai_analyzer import create_analyzer, NexusLetterAnalyzer
-from src.models.text_processor import create_processor, TextProcessor
-from src.utils.config import get_settings, validate_openai_key
-from src.models.scoring_engine import create_scorer, VAComplianceScorer
+from models.ai_analyzer import create_analyzer, NexusLetterAnalyzer
+from models.text_processor import create_processor, TextProcessor
+from utils.config import get_settings, validate_openai_key
+from models.scoring_engine import create_scorer, VAComplianceScoringEngine
 from src.models.recommendation_engine import (
     create_recommendation_engine,
     RecommendationEngine,
