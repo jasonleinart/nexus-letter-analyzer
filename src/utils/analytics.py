@@ -179,8 +179,9 @@ class AnalyticsEngine:
             high_score_count = sum(
                 1 for a in recent_analyses if a["overall_score"] >= 85
             )
+            # Only count as critical issue if score is below 70 (revision required threshold)
             critical_issue_analyses = sum(
-                1 for a in recent_analyses if a["critical_issues_count"] > 0
+                1 for a in recent_analyses if a["overall_score"] < 70
             )
 
             # Average metrics
