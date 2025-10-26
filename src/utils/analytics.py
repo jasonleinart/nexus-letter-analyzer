@@ -3,7 +3,7 @@
 import logging
 from typing import Dict, List, Optional, Tuple
 from datetime import datetime, timedelta
-from src.data.database import AnalysisDatabase
+from data.database import AnalysisDatabase
 import streamlit as st
 
 # Configure logging

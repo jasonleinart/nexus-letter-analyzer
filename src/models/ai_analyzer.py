@@ -5,7 +5,7 @@ import logging
 from typing import Dict, Optional, Any
 from openai import OpenAI
 from pydantic import BaseModel, Field
-from src.utils.config import get_settings, validate_openai_key
+from utils.config import get_settings, validate_openai_key
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)

@@ -6,13 +6,13 @@ from typing import Dict, Any
 from models.ai_analyzer import create_analyzer, NexusLetterAnalyzer
 from models.text_processor import create_processor, TextProcessor
 from utils.config import get_settings, validate_openai_key
-from models.scoring_engine import create_scorer, VAComplianceScoringEngine
-from src.models.recommendation_engine import (
+from models.scoring_engine import create_scorer, VAComplianceScorer
+from models.recommendation_engine import (
     create_recommendation_engine,
     RecommendationEngine,
 )
-from src.data.database import create_database, AnalysisDatabase
-from src.utils.analytics import display_analytics_dashboard
+from data.database import create_database, AnalysisDatabase
+from utils.analytics import display_analytics_dashboard
 
 
 def configure_page():
@@ -990,7 +990,7 @@ def main():
         # Analysis History & Database Records
         try:
             database = create_database()
-            from src.utils.analytics import display_analysis_history
+            from utils.analytics import display_analysis_history
 
             display_analysis_history(database)
         except Exception as e:
