@@ -831,35 +831,18 @@ def main():
         # Get user input
         letter_text, processor = get_user_input()
 
-        # Rate limiting check
-        if "last_analysis_time" not in st.session_state:
-            st.session_state.last_analysis_time = 0
-        if "analysis_count" not in st.session_state:
-            st.session_state.analysis_count = 0
-
-        import time
-
-        current_time = time.time()
-        time_since_last = current_time - st.session_state.last_analysis_time
-
-        # Reset count every hour
-        if time_since_last > 3600:  # 1 hour
-            st.session_state.analysis_count = 0
-
-        # Show usage counter
-        remaining = 5 - st.session_state.analysis_count
-        if remaining > 0:
-            st.info(f"📊 **Demo Usage:** {remaining} analyses remaining this hour")
-
-        # Rate limiting: max 5 analyses per hour
-        if st.session_state.analysis_count >= 5:
-            st.error(
-                "⏰ **Rate limit reached.** Please wait before analyzing another letter. (Max 5 per hour)"
-            )
-            st.info(
-                "This demo has usage limits to prevent API abuse. In production, authenticated users would have higher limits."
-            )
-            st.stop()
+        # RATE LIMITING DISABLED FOR DEMO
+        # Note: Session-based rate limiting is not secure for production.
+        # In a production environment, implement:
+        # 1. User authentication with database-tracked usage
+        # 2. IP-based rate limiting with Redis/Memcached
+        # 3. API gateway with proper rate limiting (e.g., Kong, AWS API Gateway)
+        #
+        # For interview demo purposes, rate limiting is disabled.
+        # If deploying publicly, either:
+        # - Remove the API key from Streamlit Secrets
+        # - Use OpenAI usage limits/alerts in your OpenAI dashboard
+        # - Implement proper authentication
 
         # Analysis section
         if st.button(
@@ -870,10 +853,6 @@ def main():
                 st.session_state.generated_report = None
             if "analysis_results" in st.session_state:
                 st.session_state.analysis_results = None
-
-            # Update rate limiting counters
-            st.session_state.last_analysis_time = current_time
-            st.session_state.analysis_count += 1
 
             if not letter_text:
                 st.warning("Please enter nexus letter text to analyze.")
